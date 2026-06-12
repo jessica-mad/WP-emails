@@ -85,4 +85,17 @@ var weaTemplateData = <?php echo wp_json_encode( [
     'html'      => $template['html']      ?? null,
 ] ); ?>;
 </script>
+<style>
+/* Forzar overflow visible en toda la cadena de ancestros para que
+   el drag & drop del canvas de GrapesJS no quede bloqueado */
+html, body,
+#wpwrap, #wpcontent, #wpbody, #wpbody-content,
+.wrap, .wea-builder-page {
+    overflow: visible !important;
+}
+/* El editor de GrapesJS necesita que su contenedor sea position:relative */
+#gjs { position: relative; }
+/* Evitar que el admin bar de WP capture eventos sobre el canvas */
+#wpadminbar { z-index: 9999 !important; }
+</style>
 <?php endif; ?>

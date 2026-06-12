@@ -121,8 +121,20 @@
 
 /* ── Builder full-page layout ───────────────────────────────── */
 
+/* Liberar overflow en todos los ancestros del builder para que
+   el drag & drop de GrapesJS funcione correctamente */
+body.wp-admin:has(.wea-builder-page),
+body.wp-admin:has(.wea-builder-page) #wpwrap,
+body.wp-admin:has(.wea-builder-page) #wpcontent,
+body.wp-admin:has(.wea-builder-page) #wpbody,
+body.wp-admin:has(.wea-builder-page) #wpbody-content {
+    overflow: visible !important;
+    height: auto !important;
+}
+
 .wea-builder-page {
     margin: -10px -20px 0 -20px;
+    position: relative;
 }
 
 /* Barra superior nuestra encima de GrapesJS */

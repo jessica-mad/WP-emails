@@ -35,9 +35,11 @@
         '</mjml>',
     ].join('\n');
 
-    // grapesjs-mjml 1.x UMD se registra en window['grapesjs-mjml']
-    // grapesjs 0.23.x acepta el plugin directamente como función/objeto
-    var mjmlPlugin = window['grapesjs-mjml'];
+    // grapesjs-mjml 1.x UMD: puede ser la función directamente o { default: fn }
+    var mjmlRaw    = window['grapesjs-mjml'];
+    var mjmlPlugin = mjmlRaw && typeof mjmlRaw === 'function'
+        ? mjmlRaw
+        : ( mjmlRaw && typeof mjmlRaw.default === 'function' ? mjmlRaw.default : null );
 
     var editorConfig = {
         container:      '#gjs',
@@ -48,7 +50,7 @@
     };
 
     if ( mjmlPlugin ) {
-        editorConfig.plugins    = [ mjmlPlugin ];
+        editorConfig.plugins     = [ mjmlPlugin ];
         editorConfig.pluginsOpts = {};
         editorConfig.pluginsOpts[ mjmlPlugin ] = {};
     }
