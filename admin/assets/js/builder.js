@@ -69,6 +69,14 @@
         storageManager: false,
         height:         'calc(100vh - 96px)',
         width:          'auto',
+        // Renderizar canvas en el DOM principal, NO en iframe
+        // Esto resuelve el bug de drag & drop entre documento e iframe
+        // en GrapesJS 0.21+
+        canvas: {
+            styles:  [],
+            scripts: [],
+        },
+        protectedCss: '',
     };
 
     if ( mjmlPlugin ) {
@@ -93,47 +101,62 @@
         log('editor "load" event disparado', '#4ade80');
 
         var blocks = editor.BlockManager.getAll();
-        log('Bloques registrados: ' + blocks.length + ' — [' + blocks.map(function(b){ return b.get('id'); }).join(', ') + ']', blocks.length ? '#4ade80' : '#f87171');
+        log('Bloques registrados: ' + blocks.length, blocks.length ? '#4ade80' : '#f87171');
+
+        // Inspeccionar el wrapper del canvas
+        var wrapper = editor.getWrapper();
+        log('Wrapper type: "' + wrapper.get('type') + '" tagName: "' + wrapper.get('tagName') + '"', '#facc15');
+        log('Wrapper children: ' + wrapper.components().length, '#facc15');
+        log('Wrapper droppable: ' + wrapper.get('droppable'), '#facc15');
 
         // Abrir bloques por defecto
-        try { editor.runCommand('open-blocks'); log('open-blocks ejecutado', '#4ade80'); } catch(e) { log('open-blocks ERROR: ' + e.message, '#f87171'); }
+        try { editor.runCommand('open-blocks'); log('open-blocks OK', '#4ade80'); } catch(e) { log('open-blocks ERR: ' + e.message, '#f87171'); }
 
+        // Cargar contenido
         if ( savedData.mjml_json && savedData.mjml_json !== 'null' ) {
             try {
                 var data = JSON.parse( savedData.mjml_json );
                 if ( data && typeof data === 'object' ) {
-                    // Intentar loadProjectData (0.21+) y caer a setComponents (0.14)
                     if ( typeof editor.loadProjectData === 'function' ) {
                         editor.loadProjectData( data );
+                        log('loadProjectData OK — children tras load: ' + editor.getWrapper().components().length, '#4ade80');
                     } else if ( data.components ) {
                         editor.setComponents( data.components );
                         if ( data.styles ) editor.setStyle( data.styles );
+                        log('setComponents OK', '#4ade80');
                     }
                     return;
                 }
-            } catch (e) {}
+            } catch (e) { log('Load data ERR: ' + e.message, '#f87171'); }
         }
 
         // Plantilla por defecto
         if ( mjmlPlugin ) {
             try {
                 editor.runCommand('mjml-import', { content: defaultMjml });
-                log('mjml-import ejecutado con plantilla por defecto', '#4ade80');
+                log('mjml-import OK — children: ' + editor.getWrapper().components().length, '#4ade80');
             } catch(e) {
-                log('mjml-import ERROR: ' + e.message, '#f87171');
+                log('mjml-import ERR: ' + e.message, '#f87171');
+                // Fallback: añadir mj-body directamente
+                try {
+                    editor.setComponents('<mjml><mj-body><mj-section><mj-column><mj-text>Hola {{name}}</mj-text></mj-column></mj-section></mj-body></mjml>');
+                    log('setComponents fallback OK', '#4ade80');
+                } catch(e2) {
+                    log('setComponents fallback ERR: ' + e2.message, '#f87171');
+                }
             }
         }
-    });
 
-    // Log de eventos de drag & drop
-    editor.on('block:drag:start', function(block) {
-        log('DRAG START: ' + block.get('id'), '#60a5fa');
-    });
-    editor.on('block:drag:stop', function(component, block) {
-        log('DRAG STOP: ' + (block ? block.get('id') : 'none') + ' → component: ' + (component ? component.get('type') : 'none'), component ? '#4ade80' : '#f87171');
-    });
-    editor.on('component:add', function(component) {
-        log('COMPONENT ADD: ' + component.get('type'), '#4ade80');
+        // Log wrapper después de todo
+        setTimeout(function(){
+            var w = editor.getWrapper();
+            log('Wrapper FINAL — type: "' + w.get('type') + '" droppable: ' + w.get('droppable') + ' children: ' + w.components().length, '#60a5fa');
+            if (w.components().length > 0) {
+                w.components().each(function(c, i){
+                    if (i < 5) log('  child[' + i + ']: type="' + c.get('type') + '" droppable=' + c.get('droppable'), '#60a5fa');
+                });
+            }
+        }, 500);
     });
 
     // -------------------------------------------------------------------------
