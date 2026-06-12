@@ -1,0 +1,146 @@
+/* WP Email Automations — Admin Styles */
+
+/* ── Layout ─────────────────────────────────────────────────── */
+.wea-wrap { max-width: 1200px; }
+
+/* ── Stats grid ─────────────────────────────────────────────── */
+.wea-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+    margin: 24px 0;
+}
+.wea-stat-card {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.06);
+}
+.wea-stat-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1d2327;
+    line-height: 1;
+}
+.wea-stat-label {
+    font-size: .8rem;
+    color: #757575;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+}
+.wea-stat-card a {
+    font-size: .8rem;
+    margin-top: 4px;
+}
+
+/* ── Panel ───────────────────────────────────────────────────── */
+.wea-panel {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 24px;
+    margin: 24px 0;
+}
+.wea-panel h2 { margin-top: 0; }
+
+/* ── Code blocks ────────────────────────────────────────────── */
+.wea-code {
+    background: #1e1e2e;
+    color: #cdd6f4;
+    padding: 16px;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-size: .82rem;
+    line-height: 1.6;
+    white-space: pre;
+}
+
+/* ── Badges ─────────────────────────────────────────────────── */
+.wea-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: .75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+.wea-badge--active  { background: #d1fae5; color: #065f46; }
+.wea-badge--inactive{ background: #f3f4f6; color: #6b7280; }
+.wea-badge--sent    { background: #d1fae5; color: #065f46; }
+.wea-badge--failed  { background: #fee2e2; color: #991b1b; }
+.wea-badge--skipped { background: #fef3c7; color: #92400e; }
+
+/* ── Delete link ────────────────────────────────────────────── */
+.wea-delete-link { color: #dc3232 !important; }
+
+/* ── Section ─────────────────────────────────────────────────── */
+.wea-section {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 20px;
+    margin: 16px 0;
+}
+.wea-section h2 { margin-top: 0; }
+
+/* ── Condition / Action rows ────────────────────────────────── */
+.wea-condition-row,
+.wea-action-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+    margin-bottom: 8px;
+    background: #f9fafb;
+    flex-wrap: wrap;
+}
+.wea-condition-row input[type="text"],
+.wea-condition-row select {
+    flex: 1;
+    min-width: 120px;
+}
+.wea-action-inner {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+    flex: 1;
+}
+.wea-action-inner label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: .85rem;
+}
+
+/* ── Builder header ─────────────────────────────────────────── */
+.wea-builder-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 0;
+    flex-wrap: wrap;
+}
+.wea-builder-header .regular-text { flex: 1; min-width: 200px; max-width: 320px; }
+
+/* ── Builder status bar ─────────────────────────────────────── */
+.wea-builder-status {
+    min-height: 24px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: .85rem;
+    transition: background .2s;
+}
+.wea-builder-status--success { background: #d1fae5; color: #065f46; }
+.wea-builder-status--error   { background: #fee2e2; color: #991b1b; }
+.wea-builder-status--info    { background: #e0f2fe; color: #0369a1; }
+
+/* ── Misc ───────────────────────────────────────────────────── */
+.wea-success { color: #065f46; }
+.wea-error   { color: #991b1b; }
