@@ -2,8 +2,27 @@
 (function () {
     'use strict';
 
+    // ── Debug panel ──────────────────────────────────────────────
+    var debugEl = document.createElement('div');
+    debugEl.id  = 'wea-debug';
+    debugEl.style.cssText = 'position:fixed;bottom:0;left:0;right:0;max-height:200px;overflow-y:auto;background:#0f172a;color:#94a3b8;font:12px/1.5 monospace;padding:8px 12px;z-index:999999;border-top:2px solid #6366f1;';
+    document.body.appendChild(debugEl);
+
+    function log(msg, color) {
+        var line = document.createElement('div');
+        line.style.color = color || '#94a3b8';
+        line.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg;
+        debugEl.appendChild(line);
+        debugEl.scrollTop = debugEl.scrollHeight;
+        console.log('[WEA Builder]', msg);
+    }
+
+    log('Script iniciado');
+    log('grapesjs cargado: ' + (typeof grapesjs !== 'undefined'), typeof grapesjs !== 'undefined' ? '#4ade80' : '#f87171');
+    log('window["grapesjs-mjml"]: ' + typeof window['grapesjs-mjml'], '#facc15');
+
     if ( typeof grapesjs === 'undefined' ) {
-        document.getElementById('gjs').innerHTML = '<p style="padding:20px;color:red">Error: GrapesJS no cargó. Contacta con soporte.</p>';
+        log('ERROR: GrapesJS no disponible — abortando', '#f87171');
         return;
     }
 
@@ -41,6 +60,9 @@
         ? mjmlRaw
         : ( mjmlRaw && typeof mjmlRaw.default === 'function' ? mjmlRaw.default : null );
 
+    log('mjmlPlugin resuelto: ' + ( mjmlPlugin ? 'función ✓' : 'NULL — bloques MJML no cargarán' ), mjmlPlugin ? '#4ade80' : '#f87171');
+    log('GrapesJS version: ' + ( grapesjs.version || 'desconocida' ), '#facc15');
+
     var editorConfig = {
         container:      '#gjs',
         fromElement:    false,
@@ -55,14 +77,26 @@
         editorConfig.pluginsOpts[ mjmlPlugin ] = {};
     }
 
-    var editor = grapesjs.init( editorConfig );
+    var editor;
+    try {
+        editor = grapesjs.init( editorConfig );
+        log('grapesjs.init() OK', '#4ade80');
+    } catch(e) {
+        log('ERROR en grapesjs.init(): ' + e.message, '#f87171');
+        return;
+    }
 
     // -------------------------------------------------------------------------
     // Cargar contenido inicial
     // -------------------------------------------------------------------------
     editor.on('load', function () {
+        log('editor "load" event disparado', '#4ade80');
+
+        var blocks = editor.BlockManager.getAll();
+        log('Bloques registrados: ' + blocks.length + ' — [' + blocks.map(function(b){ return b.get('id'); }).join(', ') + ']', blocks.length ? '#4ade80' : '#f87171');
+
         // Abrir bloques por defecto
-        try { editor.runCommand('open-blocks'); } catch(e) {}
+        try { editor.runCommand('open-blocks'); log('open-blocks ejecutado', '#4ade80'); } catch(e) { log('open-blocks ERROR: ' + e.message, '#f87171'); }
 
         if ( savedData.mjml_json && savedData.mjml_json !== 'null' ) {
             try {
@@ -82,8 +116,24 @@
 
         // Plantilla por defecto
         if ( mjmlPlugin ) {
-            try { editor.runCommand('mjml-import', { content: defaultMjml }); } catch(e) {}
+            try {
+                editor.runCommand('mjml-import', { content: defaultMjml });
+                log('mjml-import ejecutado con plantilla por defecto', '#4ade80');
+            } catch(e) {
+                log('mjml-import ERROR: ' + e.message, '#f87171');
+            }
         }
+    });
+
+    // Log de eventos de drag & drop
+    editor.on('block:drag:start', function(block) {
+        log('DRAG START: ' + block.get('id'), '#60a5fa');
+    });
+    editor.on('block:drag:stop', function(component, block) {
+        log('DRAG STOP: ' + (block ? block.get('id') : 'none') + ' → component: ' + (component ? component.get('type') : 'none'), component ? '#4ade80' : '#f87171');
+    });
+    editor.on('component:add', function(component) {
+        log('COMPONENT ADD: ' + component.get('type'), '#4ade80');
     });
 
     // -------------------------------------------------------------------------
