@@ -20,6 +20,50 @@
         }
         renderConditions();
         renderActions();
+        renderTriggerVars( $('#auto-trigger').val() );
+    }
+
+    // ------ Trigger variable panel ------
+    $('#auto-trigger').on('change', function () {
+        renderTriggerVars( $(this).val() );
+    });
+
+    function renderTriggerVars( triggerKey ) {
+        var fields   = (window.weaTriggerFields || {})[ triggerKey ];
+        var $panel   = $('#wea-trigger-vars');
+        var $list    = $('#wea-vars-list');
+        $list.empty();
+
+        if ( ! fields || ! Object.keys(fields).length ) {
+            $panel.hide();
+            return;
+        }
+
+        Object.entries(fields).forEach(function([key, desc]){
+            var chip = $('<span class="wea-var-chip" title="' + esc(desc) + '">{{' + esc(key) + '}}</span>');
+            chip.on('click', function(){
+                copyToClipboard( '{{' + key + '}}' );
+                var orig = chip.text();
+                chip.text('¡Copiado!');
+                setTimeout(function(){ chip.text(orig); }, 1200);
+            });
+            $list.append(chip).append(' ');
+        });
+
+        $panel.show();
+    }
+
+    function copyToClipboard( text ) {
+        if ( navigator.clipboard ) {
+            navigator.clipboard.writeText( text );
+        } else {
+            var el = document.createElement('textarea');
+            el.value = text;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+        }
     }
 
     // ------ Conditions ------

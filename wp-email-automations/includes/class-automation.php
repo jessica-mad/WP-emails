@@ -320,15 +320,174 @@ class Automation {
 
     public static function available_triggers(): array {
         return apply_filters( 'wea_available_triggers', [
-            'user.registered'    => __( 'User Registered',        'wp-email-automations' ),
-            'user.password_reset' => __( 'Password Reset',        'wp-email-automations' ),
-            'order.created'      => __( 'Order Created',          'wp-email-automations' ),
-            'order.completed'    => __( 'Order Completed',        'wp-email-automations' ),
-            'order.refunded'     => __( 'Order Refunded',         'wp-email-automations' ),
-            'subscription.started' => __( 'Subscription Started', 'wp-email-automations' ),
-            'subscription.cancelled' => __( 'Subscription Cancelled', 'wp-email-automations' ),
-            'form.submitted'     => __( 'Form Submitted',         'wp-email-automations' ),
-            'custom'             => __( 'Custom Event',           'wp-email-automations' ),
+
+            // ── Usuarios ────────────────────────────────────────────────────
+            'user.registered'         => __( '👤 Usuario registrado',                     'wp-email-automations' ),
+            'user.password_reset'     => __( '👤 Restablecimiento de contraseña',         'wp-email-automations' ),
+
+            // ── Tragaperras ─────────────────────────────────────────────────
+            'slot.played'             => __( '🎰 Tragaperras — partida jugada',            'wp-email-automations' ),
+            'slot.big_win'            => __( '🎰 Tragaperras — premio grande',             'wp-email-automations' ),
+            'slot.jackpot'            => __( '🎰 Tragaperras — jackpot',                  'wp-email-automations' ),
+
+            // ── Retos / Rachas ───────────────────────────────────────────────
+            'challenge.completed'     => __( '🏆 Reto completado',                        'wp-email-automations' ),
+            'challenge.started'       => __( '🏆 Reto iniciado',                          'wp-email-automations' ),
+            'challenge.streak_active' => __( '🔥 Racha activa — motivación diaria',       'wp-email-automations' ),
+            'challenge.streak_at_risk'=> __( '⚠️ Racha en peligro — no la rompas',        'wp-email-automations' ),
+            'challenge.streak_broken' => __( '💔 Racha rota',                             'wp-email-automations' ),
+            'challenge.streak_paused' => __( '⏸️ Racha pausada',                          'wp-email-automations' ),
+
+            // ── Notificaciones sociales ──────────────────────────────────────
+            'social.new_follower'     => __( '👥 Nuevo seguidor',                         'wp-email-automations' ),
+            'social.me_inspiras'      => __( '✨ Alguien te ha dado Me Inspiras',          'wp-email-automations' ),
+            'social.comment'          => __( '💬 Nuevo comentario en tu obra',             'wp-email-automations' ),
+            'social.artwork_liked'    => __( '❤️ Tu obra ha recibido likes',               'wp-email-automations' ),
+            'social.mention'          => __( '📣 Te han mencionado',                       'wp-email-automations' ),
+
+            // ── Genéricos ────────────────────────────────────────────────────
+            'order.created'           => __( '🛒 Pedido creado',                           'wp-email-automations' ),
+            'order.completed'         => __( '🛒 Pedido completado',                       'wp-email-automations' ),
+            'subscription.started'    => __( '💳 Suscripción iniciada',                   'wp-email-automations' ),
+            'subscription.cancelled'  => __( '💳 Suscripción cancelada',                  'wp-email-automations' ),
+            'custom'                  => __( '⚙️ Evento personalizado',                   'wp-email-automations' ),
         ] );
+    }
+
+    /**
+     * Returns documented payload fields for each trigger.
+     * Used in the admin UI to show available {{variables}}.
+     */
+    public static function trigger_fields(): array {
+        return [
+            'user.registered' => [
+                'email'        => 'Email del usuario',
+                'name'         => 'Nombre completo',
+                'username'     => 'Nombre de usuario',
+                'registered_at'=> 'Fecha de registro',
+                'avatar_url'   => 'URL del avatar',
+            ],
+            'slot.played' => [
+                'email'        => 'Email del usuario',
+                'name'         => 'Nombre del usuario',
+                'username'     => 'Nombre de usuario',
+                'result'       => 'Resultado (win / lose / jackpot)',
+                'prize_name'   => 'Nombre del premio ganado',
+                'prize_value'  => 'Valor del premio (monedas/puntos)',
+                'symbols'      => 'Símbolos obtenidos (ej: 🍒🍒🍒)',
+                'total_coins'  => 'Monedas totales tras la partida',
+                'spins_today'  => 'Partidas jugadas hoy',
+                'played_at'    => 'Fecha y hora de la partida',
+            ],
+            'slot.big_win' => [
+                'email'        => 'Email del usuario',
+                'name'         => 'Nombre del usuario',
+                'prize_name'   => 'Nombre del premio',
+                'prize_value'  => 'Valor del premio',
+                'symbols'      => 'Símbolos ganadores',
+                'multiplier'   => 'Multiplicador aplicado',
+            ],
+            'slot.jackpot' => [
+                'email'        => 'Email del usuario',
+                'name'         => 'Nombre del usuario',
+                'jackpot_amount' => 'Cantidad del jackpot',
+                'symbols'      => 'Símbolos ganadores',
+            ],
+            'challenge.completed' => [
+                'email'            => 'Email del usuario',
+                'name'             => 'Nombre del usuario',
+                'challenge_title'  => 'Título del reto',
+                'challenge_id'     => 'ID del reto',
+                'category'         => 'Categoría (acuarela, óleo, digital…)',
+                'difficulty'       => 'Dificultad (fácil, medio, difícil)',
+                'points_earned'    => 'Puntos ganados',
+                'streak_days'      => 'Días de racha actual',
+                'artwork_url'      => 'URL de la obra enviada',
+                'completed_at'     => 'Fecha de completado',
+                'next_challenge_url'=> 'URL del siguiente reto sugerido',
+            ],
+            'challenge.started' => [
+                'email'           => 'Email del usuario',
+                'name'            => 'Nombre del usuario',
+                'challenge_title' => 'Título del reto',
+                'challenge_id'    => 'ID del reto',
+                'category'        => 'Categoría',
+                'deadline'        => 'Fecha límite',
+                'challenge_url'   => 'URL del reto',
+            ],
+            'challenge.streak_active' => [
+                'email'             => 'Email del usuario',
+                'name'              => 'Nombre del usuario',
+                'streak_days'       => 'Días consecutivos',
+                'streak_record'     => 'Récord personal de racha',
+                'last_challenge'    => 'Último reto completado',
+                'next_challenge_url'=> 'URL del siguiente reto',
+                'motivational_rank' => 'Posición en ranking de rachas',
+            ],
+            'challenge.streak_at_risk' => [
+                'email'          => 'Email del usuario',
+                'name'           => 'Nombre del usuario',
+                'streak_days'    => 'Días de racha en juego',
+                'hours_left'     => 'Horas restantes para no romperla',
+                'challenge_url'  => 'URL del reto del día',
+            ],
+            'challenge.streak_broken' => [
+                'email'        => 'Email del usuario',
+                'name'         => 'Nombre del usuario',
+                'streak_days'  => 'Días que duró la racha',
+                'broken_at'    => 'Fecha en que se rompió',
+                'restart_url'  => 'URL para empezar nueva racha',
+            ],
+            'challenge.streak_paused' => [
+                'email'        => 'Email del usuario',
+                'name'         => 'Nombre del usuario',
+                'streak_days'  => 'Días de racha antes de pausar',
+                'paused_until' => 'Fecha hasta la que está pausada',
+                'resume_url'   => 'URL para reanudar',
+            ],
+            'social.new_follower' => [
+                'email'              => 'Email del destinatario',
+                'name'               => 'Nombre del destinatario',
+                'follower_name'      => 'Nombre del nuevo seguidor',
+                'follower_username'  => 'Username del seguidor',
+                'follower_avatar'    => 'Avatar del seguidor',
+                'follower_profile'   => 'URL del perfil del seguidor',
+                'total_followers'    => 'Total de seguidores ahora',
+            ],
+            'social.me_inspiras' => [
+                'email'           => 'Email del destinatario',
+                'name'            => 'Nombre del destinatario',
+                'from_name'       => 'Nombre de quien inspira',
+                'from_username'   => 'Username de quien inspira',
+                'from_avatar'     => 'Avatar de quien inspira',
+                'artwork_title'   => 'Título de la obra que inspiró',
+                'artwork_url'     => 'URL de la obra',
+                'artwork_image'   => 'Imagen de la obra',
+                'total_me_inspiras' => 'Total de Me Inspiras recibidos',
+            ],
+            'social.comment' => [
+                'email'          => 'Email del destinatario',
+                'name'           => 'Nombre del destinatario',
+                'commenter_name' => 'Nombre del comentarista',
+                'comment_text'   => 'Texto del comentario',
+                'artwork_title'  => 'Título de la obra',
+                'artwork_url'    => 'URL de la obra',
+            ],
+            'social.artwork_liked' => [
+                'email'         => 'Email del destinatario',
+                'name'          => 'Nombre del destinatario',
+                'liker_name'    => 'Nombre de quien dio like',
+                'artwork_title' => 'Título de la obra',
+                'artwork_url'   => 'URL de la obra',
+                'total_likes'   => 'Total de likes de la obra',
+            ],
+            'social.mention' => [
+                'email'          => 'Email del destinatario',
+                'name'           => 'Nombre del destinatario',
+                'mentioned_by'   => 'Nombre de quien menciona',
+                'context'        => 'Contexto de la mención',
+                'link'           => 'URL donde se mencionó',
+            ],
+        ];
     }
 }

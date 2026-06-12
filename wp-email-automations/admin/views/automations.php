@@ -1,12 +1,13 @@
 <?php
 defined( 'ABSPATH' ) || exit;
 
-$action     = $_GET['action'] ?? 'list';
-$id         = absint( $_GET['id'] ?? 0 );
-$automation = ( $action === 'edit' && $id ) ? WEA\Automation::get( $id ) : null;
-$templates  = WEA\TemplateManager::get_all();
-$triggers   = WEA\Automation::available_triggers();
-$operators  = WEA\ConditionEvaluator::operators();
+$action         = $_GET['action'] ?? 'list';
+$id             = absint( $_GET['id'] ?? 0 );
+$automation     = ( $action === 'edit' && $id ) ? WEA\Automation::get( $id ) : null;
+$templates      = WEA\TemplateManager::get_all();
+$triggers       = WEA\Automation::available_triggers();
+$trigger_fields = WEA\Automation::trigger_fields();
+$operators      = WEA\ConditionEvaluator::operators();
 
 if ( $action === 'list' ) :
     $automations = WEA\Automation::get_all();
@@ -102,6 +103,12 @@ if ( $action === 'list' ) :
                             <option value="<?php echo esc_attr( $key ); ?>" <?php selected( $automation['trigger_key'] ?? '', $key ); ?>><?php echo esc_html( $label ); ?></option>
                         <?php endforeach; ?>
                     </select>
+                    <!-- Variables panel -->
+                    <div id="wea-trigger-vars" class="wea-vars-panel" style="display:none">
+                        <strong><?php esc_html_e( 'Variables disponibles para este trigger:', 'wp-email-automations' ); ?></strong>
+                        <div id="wea-vars-list" class="wea-vars-list"></div>
+                        <p class="description"><?php esc_html_e( 'Clic en una variable para copiarla. Úsalas en el asunto o cuerpo del email como {{variable}}.', 'wp-email-automations' ); ?></p>
+                    </div>
                 </td>
             </tr>
             <tr>
@@ -140,7 +147,7 @@ if ( $action === 'list' ) :
 </div>
 
 <script>
-// Embed template list for action builder
-var weaTemplates = <?php echo wp_json_encode( array_map( fn( $t ) => [ 'id' => $t['id'], 'name' => $t['name'] ], $templates ) ); ?>;
+var weaTemplates     = <?php echo wp_json_encode( array_map( fn( $t ) => [ 'id' => $t['id'], 'name' => $t['name'] ], $templates ) ); ?>;
+var weaTriggerFields = <?php echo wp_json_encode( $trigger_fields ); ?>;
 </script>
 <?php endif; ?>
