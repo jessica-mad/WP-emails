@@ -60,34 +60,59 @@ if ( $action === 'list' ) :
 </div>
 
 <?php else : // builder ?>
-<div class="wrap wea-wrap wea-builder-wrap">
-    <h1><?php echo $template ? esc_html__( 'Edit Template', 'wp-email-automations' ) : esc_html__( 'New Template', 'wp-email-automations' ); ?></h1>
+<div class="wea-builder-page">
 
-    <div class="wea-builder-header">
-        <input type="text" id="wea-tmpl-name" class="regular-text" placeholder="<?php esc_attr_e( 'Template name', 'wp-email-automations' ); ?>" value="<?php echo esc_attr( $template['name'] ?? '' ); ?>">
-        <input type="text" id="wea-tmpl-subject" class="regular-text" placeholder="<?php esc_attr_e( 'Email subject — supports {{variables}}', 'wp-email-automations' ); ?>" value="<?php echo esc_attr( $template['subject'] ?? '' ); ?>">
-        <button class="button button-primary" id="wea-save-btn"><?php esc_html_e( 'Save', 'wp-email-automations' ); ?></button>
-        <button class="button" id="wea-test-btn"><?php esc_html_e( 'Send Test', 'wp-email-automations' ); ?></button>
-        <a href="<?php echo esc_url( admin_url( 'admin.php?page=wea-templates' ) ); ?>" class="button"><?php esc_html_e( '← Back', 'wp-email-automations' ); ?></a>
+    <!-- ── Barra superior ── -->
+    <div class="wea-builder-topbar">
+        <div class="wea-builder-topbar-left">
+            <a href="<?php echo esc_url( admin_url( 'admin.php?page=wea-templates' ) ); ?>" class="wea-back-btn">← <?php esc_html_e( 'Plantillas', 'wp-email-automations' ); ?></a>
+            <input type="text" id="wea-tmpl-name"    placeholder="<?php esc_attr_e( 'Nombre de la plantilla', 'wp-email-automations' ); ?>"   value="<?php echo esc_attr( $template['name']    ?? '' ); ?>" class="wea-topbar-input">
+            <input type="text" id="wea-tmpl-subject" placeholder="<?php esc_attr_e( 'Asunto del email (admite {{variables}})', 'wp-email-automations' ); ?>" value="<?php echo esc_attr( $template['subject'] ?? '' ); ?>" class="wea-topbar-input wea-topbar-input--wide">
+        </div>
+        <div class="wea-builder-topbar-center" id="wea-editor-topbar"></div>
+        <div class="wea-builder-topbar-right">
+            <div id="wea-builder-status" class="wea-builder-status"></div>
+            <button class="wea-btn wea-btn--secondary" id="wea-test-btn">📧 <?php esc_html_e( 'Prueba', 'wp-email-automations' ); ?></button>
+            <button class="wea-btn wea-btn--primary"   id="wea-save-btn">💾 <?php esc_html_e( 'Guardar', 'wp-email-automations' ); ?></button>
+        </div>
         <input type="hidden" id="wea-tmpl-id" value="<?php echo esc_attr( $template['id'] ?? 0 ); ?>">
     </div>
 
-    <div id="wea-builder-status" class="wea-builder-status"></div>
+    <!-- ── Layout principal: sidebar izquierdo + canvas + sidebar derecho ── -->
+    <div class="wea-builder-body">
 
-    <!-- GrapesJS mounts here -->
-    <div id="gjs" style="height:80vh;border:1px solid #ddd;background:#fff;"></div>
+        <!-- Sidebar izquierdo: bloques + capas -->
+        <div class="wea-builder-sidebar wea-builder-sidebar--left">
+            <div class="wea-tabs">
+                <button class="wea-tab-btn active" data-tab="blocks">🧩 <?php esc_html_e( 'Bloques', 'wp-email-automations' ); ?></button>
+                <button class="wea-tab-btn"        data-tab="layers">📐 <?php esc_html_e( 'Capas',   'wp-email-automations' ); ?></button>
+            </div>
+            <div id="wea-blocks-panel" class="wea-tab-panel"></div>
+            <div id="wea-layers-panel" class="wea-tab-panel" style="display:none"></div>
+        </div>
 
-    <script>
-        var weaTemplateData = <?php echo wp_json_encode( [
-            'mjml_json' => $template['mjml_json'] ?? null,
-            'html'      => $template['html']      ?? null,
-        ] ); ?>;
-    </script>
-</div>
+        <!-- Canvas -->
+        <div class="wea-builder-canvas">
+            <div id="gjs"></div>
+        </div>
 
-<style>
-/* Builder full-width override */
-#wpcontent { padding-left: 0 !important; }
-.wea-builder-wrap { margin: 0; max-width: 100%; }
-</style>
+        <!-- Sidebar derecho: propiedades + estilos -->
+        <div class="wea-builder-sidebar wea-builder-sidebar--right">
+            <div class="wea-tabs">
+                <button class="wea-tab-btn active" data-tab="traits">⚙️ <?php esc_html_e( 'Propiedades', 'wp-email-automations' ); ?></button>
+                <button class="wea-tab-btn"        data-tab="styles">🎨 <?php esc_html_e( 'Estilos',      'wp-email-automations' ); ?></button>
+            </div>
+            <div id="wea-traits-panel" class="wea-tab-panel"></div>
+            <div id="wea-styles-panel" class="wea-tab-panel" style="display:none"></div>
+        </div>
+
+    </div><!-- .wea-builder-body -->
+</div><!-- .wea-builder-page -->
+
+<script>
+var weaTemplateData = <?php echo wp_json_encode( [
+    'mjml_json' => $template['mjml_json'] ?? null,
+    'html'      => $template['html']      ?? null,
+] ); ?>;
+</script>
 <?php endif; ?>

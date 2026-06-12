@@ -1,72 +1,234 @@
-/* GrapesJS MJML Email Builder */
+/* GrapesJS MJML Email Builder — WP Email Automations */
 (function () {
     'use strict';
 
     var editor;
-    var templateId  = parseInt( document.getElementById('wea-tmpl-id').value, 10 ) || 0;
-    var savedData   = window.weaTemplateData || {};
+    var templateId = parseInt( document.getElementById('wea-tmpl-id').value, 10 ) || 0;
+    var savedData  = window.weaTemplateData || {};
 
-    // Default starter template
-    var defaultMjml = '<mjml><mj-body><mj-section><mj-column><mj-text font-size="20px" font-weight="bold" align="center">Hello {{name}}!</mj-text><mj-text>Welcome to our platform. We\'re glad to have you.</mj-text><mj-button href="{{cta_url}}">Get Started</mj-button></mj-column></mj-section></mj-body></mjml>';
+    var defaultMjml = [
+        '<mjml>',
+        '  <mj-head>',
+        '    <mj-attributes>',
+        '      <mj-all font-family="Arial, sans-serif" />',
+        '      <mj-text font-size="14px" color="#333333" line-height="1.6" />',
+        '    </mj-attributes>',
+        '  </mj-head>',
+        '  <mj-body background-color="#f4f4f4">',
+        '    <mj-section background-color="#ffffff" padding="30px 20px">',
+        '      <mj-column>',
+        '        <mj-image src="https://via.placeholder.com/600x80?text=Logo" alt="Logo" width="200px" />',
+        '      </mj-column>',
+        '    </mj-section>',
+        '    <mj-section background-color="#ffffff" padding="20px">',
+        '      <mj-column>',
+        '        <mj-text font-size="24px" font-weight="bold" color="#111111">',
+        '          Hola {{name}} 👋',
+        '        </mj-text>',
+        '        <mj-text>',
+        '          Escribe aquí el contenido de tu email.',
+        '        </mj-text>',
+        '        <mj-button background-color="#6366f1" color="#ffffff" href="{{cta_url}}" border-radius="6px" font-size="16px">',
+        '          Acción principal',
+        '        </mj-button>',
+        '      </mj-column>',
+        '    </mj-section>',
+        '    <mj-section background-color="#f4f4f4" padding="20px">',
+        '      <mj-column>',
+        '        <mj-text font-size="12px" color="#999999" align="center">',
+        '          © {{year}} App Painting. Todos los derechos reservados.',
+        '        </mj-text>',
+        '      </mj-column>',
+        '    </mj-section>',
+        '  </mj-body>',
+        '</mjml>',
+    ].join('\n');
 
-    // Init GrapesJS with MJML plugin
+    // -------------------------------------------------------------------------
+    // Init GrapesJS
+    // -------------------------------------------------------------------------
+
+    // grapesjs-mjml registra el plugin como window['grapesjs-mjml'] al cargarse por CDN
+    var mjmlPlugin = window['grapesjs-mjml'];
+
+    if ( ! mjmlPlugin ) {
+        showStatus('Error: no se pudo cargar el plugin MJML. Recarga la página.', 'error');
+        return;
+    }
+
     editor = grapesjs.init({
         container: '#gjs',
         fromElement: false,
-        height: '80vh',
         storageManager: false,
-        plugins: ['grapesjs-mjml'],
+        plugins: [ mjmlPlugin ],
         pluginsOpts: {
-            'grapesjs-mjml': {
-                // Use local MJML compilation if available, otherwise rely on plugin defaults
+            [mjmlPlugin]: {
+                columnsPadding:   '0 0 0 0',
+                useCustomTheme:   false,
             }
+        },
+        // Paneles: bloques a la izquierda, estilos/propiedades a la derecha
+        panels: { defaults: [] },
+        blockManager: {
+            appendTo: '#wea-blocks-panel',
+            blocks: [],
+        },
+        styleManager: {
+            appendTo: '#wea-styles-panel',
+        },
+        traitManager: {
+            appendTo: '#wea-traits-panel',
+        },
+        layerManager: {
+            appendTo: '#wea-layers-panel',
+        },
+        deviceManager: {
+            devices: [
+                { name: 'Desktop', width: '' },
+                { name: 'Mobile',  width: '320px', widthMedia: '480px' },
+            ]
+        },
+        canvas: {
+            styles: [
+                'https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap',
+            ],
         },
     });
 
-    // Load existing template data
-    if ( savedData.mjml_json ) {
-        try {
-            var projectData = JSON.parse( savedData.mjml_json );
-            editor.loadProjectData( projectData );
-        } catch (e) {
-            console.warn('WEA: Could not load project data, loading default template.', e);
-            editor.runCommand('mjml-import', { content: defaultMjml });
-        }
-    } else {
-        // New template — load default
-        editor.runCommand('mjml-import', { content: defaultMjml });
-    }
+    // -------------------------------------------------------------------------
+    // Panel de bloques personalizado — botones de la barra superior
+    // -------------------------------------------------------------------------
+    var pm = editor.Panels;
+
+    // Limpiar paneles por defecto del plugin y añadir los nuestros
+    pm.getPanels().reset();
+
+    pm.addPanel({
+        id: 'top-bar',
+        el: '#wea-editor-topbar',
+        buttons: [
+            {
+                id:      'device-desktop',
+                label:   '🖥 Desktop',
+                command: 'set-device-desktop',
+                active:  true,
+                attributes: { title: 'Vista escritorio' },
+            },
+            {
+                id:      'device-mobile',
+                label:   '📱 Móvil',
+                command: 'set-device-mobile',
+                attributes: { title: 'Vista móvil' },
+            },
+            {
+                id:      'undo',
+                label:   '↩ Deshacer',
+                command: 'core:undo',
+                attributes: { title: 'Deshacer' },
+            },
+            {
+                id:      'redo',
+                label:   '↪ Rehacer',
+                command: 'core:redo',
+                attributes: { title: 'Rehacer' },
+            },
+            {
+                id:      'show-code',
+                label:   '&lt;/&gt; Código',
+                command: 'mjml-code-viewer',
+                attributes: { title: 'Ver/editar MJML' },
+            },
+            {
+                id:      'clear-canvas',
+                label:   '🗑 Limpiar',
+                command: {
+                    run: function(ed) {
+                        if ( confirm('¿Limpiar el canvas y empezar de cero?') ) {
+                            ed.runCommand('mjml-import', { content: defaultMjml });
+                        }
+                    }
+                },
+                attributes: { title: 'Limpiar canvas' },
+            },
+        ]
+    });
+
+    // Comandos de dispositivo
+    editor.Commands.add('set-device-desktop', {
+        run: function(ed) { ed.setDevice('Desktop'); },
+    });
+    editor.Commands.add('set-device-mobile', {
+        run: function(ed) { ed.setDevice('Mobile'); },
+    });
 
     // -------------------------------------------------------------------------
-    // Save
+    // Tabs del panel izquierdo
+    // -------------------------------------------------------------------------
+    document.querySelectorAll('.wea-tab-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var target = btn.dataset.tab;
+            document.querySelectorAll('.wea-tab-btn').forEach(function(b){ b.classList.remove('active'); });
+            document.querySelectorAll('.wea-tab-panel').forEach(function(p){ p.style.display = 'none'; });
+            btn.classList.add('active');
+            var panel = document.getElementById('wea-' + target + '-panel');
+            if (panel) panel.style.display = 'block';
+        });
+    });
+
+    // -------------------------------------------------------------------------
+    // Cargar contenido inicial
+    // -------------------------------------------------------------------------
+    editor.on('load', function() {
+        if ( savedData.mjml_json && savedData.mjml_json !== 'null' ) {
+            try {
+                var projectData = JSON.parse( savedData.mjml_json );
+                if ( projectData && typeof projectData === 'object' ) {
+                    editor.loadProjectData( projectData );
+                    return;
+                }
+            } catch (e) {
+                console.warn('WEA builder: error cargando projectData, usando plantilla por defecto.', e);
+            }
+        }
+        // Plantilla por defecto para plantillas nuevas
+        setTimeout(function(){
+            editor.runCommand('mjml-import', { content: defaultMjml });
+        }, 100);
+    });
+
+    // -------------------------------------------------------------------------
+    // Guardar
     // -------------------------------------------------------------------------
     document.getElementById('wea-save-btn').addEventListener('click', function () {
         var name    = document.getElementById('wea-tmpl-name').value.trim();
         var subject = document.getElementById('wea-tmpl-subject').value.trim();
 
         if ( ! name ) {
-            showStatus('Please enter a template name.', 'error');
+            showStatus('Pon un nombre a la plantilla antes de guardar.', 'error');
+            document.getElementById('wea-tmpl-name').focus();
             return;
         }
 
         var projectData = editor.getProjectData();
-        var html        = editor.runCommand('mjml-code-viewer') || editor.getHtml();
 
-        // Some GrapesJS-MJML versions expose the compiled HTML differently
-        if ( typeof html !== 'string' || ! html ) {
-            html = editor.getHtml();
-        }
+        // Obtener HTML compilado desde el canvas
+        var html = '';
+        try {
+            // grapesjs-mjml compila a HTML; intentamos obtenerlo del wrapper
+            var wrapper = editor.getWrapper();
+            html = editor.getHtml() || '';
+        } catch(e) {}
 
         var formData = new FormData();
-        formData.append('action',    'wea_save_template');
+        formData.append('action',      'wea_save_template');
         formData.append('_ajax_nonce', weaAdmin.nonce);
-        formData.append('id',        templateId);
-        formData.append('name',      name);
-        formData.append('subject',   subject);
-        formData.append('mjml_json', JSON.stringify(projectData));
-        formData.append('html',      html);
+        formData.append('id',          templateId);
+        formData.append('name',        name);
+        formData.append('subject',     subject);
+        formData.append('mjml_json',   JSON.stringify(projectData));
+        formData.append('html',        html);
 
-        showStatus('Saving…');
+        showStatus('Guardando…', 'info');
 
         fetch(weaAdmin.ajaxUrl, { method: 'POST', body: formData })
             .then(function(r){ return r.json(); })
@@ -74,49 +236,54 @@
                 if ( res.success ) {
                     templateId = res.data.id;
                     document.getElementById('wea-tmpl-id').value = templateId;
-                    // Update URL without reload
-                    var newUrl = location.href.replace(/action=(new|edit)/, 'action=edit').replace(/&id=\d*/, '') + '&id=' + templateId;
-                    history.replaceState(null, '', newUrl);
-                    showStatus(weaAdmin.i18n.saved, 'success');
+                    var url = new URL(location.href);
+                    url.searchParams.set('action', 'edit');
+                    url.searchParams.set('id', templateId);
+                    history.replaceState(null, '', url.toString());
+                    showStatus('✓ Guardado', 'success');
                 } else {
-                    showStatus(weaAdmin.i18n.error, 'error');
+                    showStatus('Error al guardar.', 'error');
                 }
             })
-            .catch(function(){ showStatus(weaAdmin.i18n.error, 'error'); });
+            .catch(function(){ showStatus('Error de red.', 'error'); });
     });
 
     // -------------------------------------------------------------------------
-    // Test email
+    // Enviar email de prueba
     // -------------------------------------------------------------------------
     document.getElementById('wea-test-btn').addEventListener('click', function () {
-        var to = prompt('Send test to (email address):', weaAdminEmail || '');
-        if ( ! to ) return;
+        var to = prompt('Enviar email de prueba a:', '');
+        if ( ! to || ! to.includes('@') ) return;
 
-        var html    = editor.getHtml();
-        var subject = document.getElementById('wea-tmpl-subject').value.trim() || 'Test Email';
+        var html    = editor.getHtml() || '';
+        var subject = document.getElementById('wea-tmpl-subject').value.trim() || 'Email de prueba';
 
         var formData = new FormData();
-        formData.append('action',    'wea_test_email');
+        formData.append('action',      'wea_test_email');
         formData.append('_ajax_nonce', weaAdmin.nonce);
-        formData.append('to',        to);
-        formData.append('subject',   subject);
-        formData.append('html',      html);
+        formData.append('to',          to);
+        formData.append('subject',     subject);
+        formData.append('html',        html);
 
-        showStatus('Sending…');
+        showStatus('Enviando…', 'info');
 
         fetch(weaAdmin.ajaxUrl, { method: 'POST', body: formData })
             .then(function(r){ return r.json(); })
             .then(function(res){
-                showStatus(res.success ? 'Test email sent to ' + res.data.to + '!' : (res.data || weaAdmin.i18n.error), res.success ? 'success' : 'error');
+                showStatus(
+                    res.success ? '✓ Email enviado a ' + res.data.to : ('Error: ' + (res.data || 'wp_mail falló')),
+                    res.success ? 'success' : 'error'
+                );
             })
-            .catch(function(){ showStatus(weaAdmin.i18n.error, 'error'); });
+            .catch(function(){ showStatus('Error de red.', 'error'); });
     });
 
     // -------------------------------------------------------------------------
-    // Status bar
+    // Barra de estado
     // -------------------------------------------------------------------------
     function showStatus(msg, type) {
         var el = document.getElementById('wea-builder-status');
+        if ( ! el ) return;
         el.textContent = msg;
         el.className   = 'wea-builder-status wea-builder-status--' + (type || 'info');
         if ( type === 'success' ) {
