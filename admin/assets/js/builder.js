@@ -51,9 +51,12 @@
     });
 
     // -------------------------------------------------------------------------
-    // Cargar contenido inicial
+    // Cargar contenido inicial + abrir panel de bloques por defecto
     // -------------------------------------------------------------------------
     editor.on('load', function () {
+        // Abrir el panel de bloques automáticamente
+        editor.runCommand('open-blocks');
+
         if ( savedData.mjml_json && savedData.mjml_json !== 'null' ) {
             try {
                 var data = JSON.parse( savedData.mjml_json );
