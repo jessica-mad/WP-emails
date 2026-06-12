@@ -121,36 +121,21 @@
 
 /* ── Builder full-page layout ───────────────────────────────── */
 
-/* Ocultar chrome de WordPress en la página del builder */
-.wea-builder-page ~ * { display: none; }
-body.wp-admin:has(.wea-builder-page) #adminmenuwrap,
-body.wp-admin:has(.wea-builder-page) #wpadminbar { /* kept visible */ }
-
 .wea-builder-page {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-    margin: -10px -20px 0 -20px; /* salir del padding de WP */
-    overflow: hidden;
-    background: #1a1a2e;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    margin: -10px -20px 0 -20px;
 }
 
-/* ── Barra superior ─────────────────────────────────────────── */
+/* Barra superior nuestra encima de GrapesJS */
 .wea-builder-topbar {
     display: flex;
     align-items: center;
     gap: 8px;
     padding: 8px 12px;
-    background: #16213e;
-    border-bottom: 1px solid #0f3460;
+    background: #1e1e2e;
     flex-shrink: 0;
-    height: 52px;
+    height: 48px;
     box-sizing: border-box;
 }
-.wea-builder-topbar-left  { display: flex; align-items: center; gap: 8px; flex: 1; }
-.wea-builder-topbar-center{ display: flex; align-items: center; gap: 4px; }
-.wea-builder-topbar-right { display: flex; align-items: center; gap: 8px; }
 
 .wea-back-btn {
     color: #94a3b8;
@@ -161,20 +146,20 @@ body.wp-admin:has(.wea-builder-page) #wpadminbar { /* kept visible */ }
     border-radius: 4px;
     transition: background .15s;
 }
-.wea-back-btn:hover { background: #0f3460; color: #fff; }
+.wea-back-btn:hover { background: rgba(255,255,255,.1); color: #fff; }
 
 .wea-topbar-input {
-    background: #0f3460 !important;
-    border: 1px solid #1e4080 !important;
+    background: rgba(255,255,255,.08) !important;
+    border: 1px solid rgba(255,255,255,.15) !important;
     color: #e2e8f0 !important;
     border-radius: 4px !important;
     padding: 5px 10px !important;
     font-size: .85rem !important;
     height: 32px !important;
+    min-width: 180px;
 }
 .wea-topbar-input::placeholder { color: #64748b !important; }
 .wea-topbar-input--wide { min-width: 280px; }
-.wea-topbar-input:focus { border-color: #6366f1 !important; outline: none !important; box-shadow: 0 0 0 2px rgba(99,102,241,.3) !important; }
 
 .wea-btn {
     padding: 6px 14px;
@@ -190,51 +175,9 @@ body.wp-admin:has(.wea-builder-page) #wpadminbar { /* kept visible */ }
 .wea-btn--primary   { background: #6366f1; color: #fff; }
 .wea-btn--secondary { background: #334155; color: #cbd5e1; }
 
-/* GrapesJS buttons in the topbar panel */
-#wea-editor-topbar .gjs-pn-buttons { display: flex; gap: 4px; }
-#wea-editor-topbar .gjs-pn-btn {
-    background: #0f3460;
-    color: #94a3b8;
-    border: 1px solid #1e4080;
-    border-radius: 4px;
-    padding: 4px 10px;
-    font-size: .78rem;
-    cursor: pointer;
-    transition: background .15s, color .15s;
-    white-space: nowrap;
-}
-#wea-editor-topbar .gjs-pn-btn:hover,
-#wea-editor-topbar .gjs-pn-btn.gjs-pn-active { background: #6366f1; color: #fff; border-color: #6366f1; }
-
-/* ── Builder body (3 columnas) ──────────────────────────────── */
-.wea-builder-body {
-    display: flex;
-    flex: 1;
-    overflow: hidden;
-}
-
-.wea-builder-sidebar {
-    width: 240px;
-    flex-shrink: 0;
-    background: #1e293b;
-    border-right: 1px solid #0f3460;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-}
-.wea-builder-sidebar--right {
-    border-right: none;
-    border-left: 1px solid #0f3460;
-}
-
-.wea-builder-canvas {
-    flex: 1;
-    overflow: hidden;
-    background: #f1f5f9;
-}
-.wea-builder-canvas #gjs {
-    width: 100%;
-    height: 100%;
+/* GrapesJS ocupa el resto de la pantalla */
+.wea-builder-page #gjs {
+    height: calc(100vh - 96px); /* 48px topbar WP admin bar + 48px topbar nuestro */
 }
 
 /* ── Tabs ────────────────────────────────────────────────────── */
