@@ -112,51 +112,46 @@
         // Abrir bloques por defecto
         try { editor.runCommand('open-blocks'); log('open-blocks OK', '#4ade80'); } catch(e) { log('open-blocks ERR: ' + e.message, '#f87171'); }
 
-        // Cargar contenido
+        // Intentar cargar datos guardados
+        var loadedOk = false;
         if ( savedData.mjml_json && savedData.mjml_json !== 'null' ) {
             try {
                 var data = JSON.parse( savedData.mjml_json );
+                log('Datos guardados parseados. Keys: ' + Object.keys(data).join(', '), '#facc15');
                 if ( data && typeof data === 'object' ) {
                     if ( typeof editor.loadProjectData === 'function' ) {
                         editor.loadProjectData( data );
-                        log('loadProjectData OK — children tras load: ' + editor.getWrapper().components().length, '#4ade80');
                     } else if ( data.components ) {
                         editor.setComponents( data.components );
                         if ( data.styles ) editor.setStyle( data.styles );
-                        log('setComponents OK', '#4ade80');
                     }
-                    return;
+                    var childCount = editor.getWrapper().components().length;
+                    log('Tras load: children = ' + childCount, childCount > 0 ? '#4ade80' : '#f87171');
+                    loadedOk = childCount > 0;
                 }
             } catch (e) { log('Load data ERR: ' + e.message, '#f87171'); }
         }
 
-        // Plantilla por defecto
-        if ( mjmlPlugin ) {
+        // Si no hay contenido cargado, usar plantilla por defecto
+        if ( ! loadedOk ) {
+            log('Canvas vacío → ejecutando mjml-import con plantilla por defecto', '#facc15');
             try {
                 editor.runCommand('mjml-import', { content: defaultMjml });
-                log('mjml-import OK — children: ' + editor.getWrapper().components().length, '#4ade80');
+                var childCount2 = editor.getWrapper().components().length;
+                log('mjml-import OK — children: ' + childCount2, childCount2 > 0 ? '#4ade80' : '#f87171');
             } catch(e) {
                 log('mjml-import ERR: ' + e.message, '#f87171');
-                // Fallback: añadir mj-body directamente
-                try {
-                    editor.setComponents('<mjml><mj-body><mj-section><mj-column><mj-text>Hola {{name}}</mj-text></mj-column></mj-section></mj-body></mjml>');
-                    log('setComponents fallback OK', '#4ade80');
-                } catch(e2) {
-                    log('setComponents fallback ERR: ' + e2.message, '#f87171');
-                }
             }
         }
 
-        // Log wrapper después de todo
+        // Log estado final del wrapper
         setTimeout(function(){
             var w = editor.getWrapper();
-            log('Wrapper FINAL — type: "' + w.get('type') + '" droppable: ' + w.get('droppable') + ' children: ' + w.components().length, '#60a5fa');
-            if (w.components().length > 0) {
-                w.components().each(function(c, i){
-                    if (i < 5) log('  child[' + i + ']: type="' + c.get('type') + '" droppable=' + c.get('droppable'), '#60a5fa');
-                });
-            }
-        }, 500);
+            log('FINAL wrapper type="' + w.get('type') + '" droppable=' + w.get('droppable') + ' children=' + w.components().length, '#60a5fa');
+            w.components().each(function(c, i){
+                if (i < 4) log('  child[' + i + ']: type="' + c.get('type') + '" droppable=' + c.get('droppable') + ' draggable=' + c.get('draggable'), '#60a5fa');
+            });
+        }, 600);
     });
 
     // -------------------------------------------------------------------------
