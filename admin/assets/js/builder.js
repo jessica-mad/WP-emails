@@ -54,19 +54,25 @@
     // Cargar contenido inicial + abrir panel de bloques por defecto
     // -------------------------------------------------------------------------
     editor.on('load', function () {
-        // Abrir el panel de bloques automáticamente
+        // Abrir el panel de bloques automáticamente al entrar
         editor.runCommand('open-blocks');
 
         if ( savedData.mjml_json && savedData.mjml_json !== 'null' ) {
             try {
                 var data = JSON.parse( savedData.mjml_json );
-                if ( data && typeof data === 'object' && ( data.pages || data.styles || data.components ) ) {
-                    editor.loadProjectData( data );
+                if ( data && typeof data === 'object' ) {
+                    // GrapesJS 0.14.x usa setComponents/setStyle, no loadProjectData
+                    if ( data.components ) {
+                        editor.setComponents( data.components );
+                    }
+                    if ( data.styles ) {
+                        editor.setStyle( data.styles );
+                    }
                     return;
                 }
             } catch (e) {}
         }
-        // Plantilla por defecto
+        // Plantilla por defecto para emails nuevos
         editor.runCommand('mjml-import', { content: defaultMjml });
     });
 
@@ -83,8 +89,12 @@
             return;
         }
 
-        var projectData = editor.getProjectData();
-        var html        = editor.getHtml() || '';
+        // GrapesJS 0.14.x: guardar components + styles (no getProjectData)
+        var projectData = {
+            components: editor.getComponents(),
+            styles:     editor.getStyle(),
+        };
+        var html = editor.getHtml() || '';
 
         var fd = new FormData();
         fd.append('action',      'wea_save_template');

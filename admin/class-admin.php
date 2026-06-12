@@ -83,10 +83,9 @@ class Admin {
 
         // GrapesJS + MJML builder — only on template editor page
         if ( isset( $_GET['page'] ) && $_GET['page'] === 'wea-templates' && isset( $_GET['action'] ) && in_array( $_GET['action'], [ 'edit', 'new' ], true ) ) {
-            // grapesjs 0.20.x + grapesjs-mjml 0.4.x: pareja estable y probada
-            wp_enqueue_style(  'grapesjs',      'https://unpkg.com/grapesjs@0.20.4/dist/css/grapes.min.css', [], null );
-            wp_enqueue_script( 'grapesjs',      'https://unpkg.com/grapesjs@0.20.4/dist/grapes.min.js',      [], null, false );
-            // grapesjs-mjml 0.4.7 se auto-registra como 'grapesjs-mjml' via grapesjs.plugins.add()
+            // grapesjs 0.14.75 + grapesjs-mjml 0.4.7: combinación oficial de la demo
+            wp_enqueue_style(  'grapesjs',      'https://unpkg.com/grapesjs@0.14.75/dist/css/grapes.min.css', [], null );
+            wp_enqueue_script( 'grapesjs',      'https://unpkg.com/grapesjs@0.14.75/dist/grapes.min.js',      [], null, false );
             wp_enqueue_script( 'grapesjs-mjml', 'https://unpkg.com/grapesjs-mjml@0.4.7/dist/grapesjs-mjml.min.js', [], null, false );
             wp_enqueue_script(
                 'wea-builder',
