@@ -83,10 +83,10 @@ class Admin {
 
         // GrapesJS + MJML builder — only on template editor page
         if ( isset( $_GET['page'] ) && $_GET['page'] === 'wea-templates' && isset( $_GET['action'] ) && in_array( $_GET['action'], [ 'edit', 'new' ], true ) ) {
-            // grapesjs 0.14.75 + grapesjs-mjml 0.4.7: combinación oficial de la demo
-            wp_enqueue_style(  'grapesjs',      'https://unpkg.com/grapesjs@0.14.75/dist/css/grapes.min.css', [], null );
-            wp_enqueue_script( 'grapesjs',      'https://unpkg.com/grapesjs@0.14.75/dist/grapes.min.js',      [], null, false );
-            wp_enqueue_script( 'grapesjs-mjml', 'https://unpkg.com/grapesjs-mjml@0.4.7/dist/grapesjs-mjml.min.js', [], null, false );
+            // Archivos locales — sin depender de CDN externos
+            wp_enqueue_style(  'grapesjs',      WEA_PLUGIN_URL . 'assets/vendor/grapes.min.css',      [], WEA_VERSION );
+            wp_enqueue_script( 'grapesjs',      WEA_PLUGIN_URL . 'assets/vendor/grapes.min.js',       [], WEA_VERSION, false );
+            wp_enqueue_script( 'grapesjs-mjml', WEA_PLUGIN_URL . 'assets/vendor/grapesjs-mjml.min.js',[], WEA_VERSION, false );
             wp_enqueue_script(
                 'wea-builder',
                 WEA_PLUGIN_URL . 'admin/assets/js/builder.js',

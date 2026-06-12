@@ -3,7 +3,7 @@
     'use strict';
 
     if ( typeof grapesjs === 'undefined' ) {
-        document.getElementById('gjs').innerHTML = '<p style="padding:20px;color:red">Error: GrapesJS no cargó. Comprueba la conexión a internet y recarga.</p>';
+        document.getElementById('gjs').innerHTML = '<p style="padding:20px;color:red">Error: GrapesJS no cargó. Contacta con soporte.</p>';
         return;
     }
 
@@ -28,52 +28,60 @@
         '    </mj-section>',
         '    <mj-section background-color="#f4f4f4" padding="20px">',
         '      <mj-column>',
-        '        <mj-text font-size="12px" color="#999999" align="center">© {{year}} Tu empresa. Todos los derechos reservados.</mj-text>',
+        '        <mj-text font-size="12px" color="#999999" align="center">© {{year}} Tu empresa.</mj-text>',
         '      </mj-column>',
         '    </mj-section>',
         '  </mj-body>',
         '</mjml>',
     ].join('\n');
 
-    // -------------------------------------------------------------------------
-    // Init GrapesJS — dejamos que el plugin MJML gestione sus paneles
-    // -------------------------------------------------------------------------
-    var editor = grapesjs.init({
+    // grapesjs-mjml 1.x UMD se registra en window['grapesjs-mjml']
+    // grapesjs 0.23.x acepta el plugin directamente como función/objeto
+    var mjmlPlugin = window['grapesjs-mjml'];
+
+    var editorConfig = {
         container:      '#gjs',
         fromElement:    false,
         storageManager: false,
-        plugins:        ['grapesjs-mjml'],
-        pluginsOpts: {
-            'grapesjs-mjml': {}
-        },
-        height: 'calc(100vh - 110px)',
-        width:  'auto',
-    });
+        height:         'calc(100vh - 96px)',
+        width:          'auto',
+    };
+
+    if ( mjmlPlugin ) {
+        editorConfig.plugins    = [ mjmlPlugin ];
+        editorConfig.pluginsOpts = {};
+        editorConfig.pluginsOpts[ mjmlPlugin ] = {};
+    }
+
+    var editor = grapesjs.init( editorConfig );
 
     // -------------------------------------------------------------------------
-    // Cargar contenido inicial + abrir panel de bloques por defecto
+    // Cargar contenido inicial
     // -------------------------------------------------------------------------
     editor.on('load', function () {
-        // Abrir el panel de bloques automáticamente al entrar
-        editor.runCommand('open-blocks');
+        // Abrir bloques por defecto
+        try { editor.runCommand('open-blocks'); } catch(e) {}
 
         if ( savedData.mjml_json && savedData.mjml_json !== 'null' ) {
             try {
                 var data = JSON.parse( savedData.mjml_json );
                 if ( data && typeof data === 'object' ) {
-                    // GrapesJS 0.14.x usa setComponents/setStyle, no loadProjectData
-                    if ( data.components ) {
+                    // Intentar loadProjectData (0.21+) y caer a setComponents (0.14)
+                    if ( typeof editor.loadProjectData === 'function' ) {
+                        editor.loadProjectData( data );
+                    } else if ( data.components ) {
                         editor.setComponents( data.components );
-                    }
-                    if ( data.styles ) {
-                        editor.setStyle( data.styles );
+                        if ( data.styles ) editor.setStyle( data.styles );
                     }
                     return;
                 }
             } catch (e) {}
         }
-        // Plantilla por defecto para emails nuevos
-        editor.runCommand('mjml-import', { content: defaultMjml });
+
+        // Plantilla por defecto
+        if ( mjmlPlugin ) {
+            try { editor.runCommand('mjml-import', { content: defaultMjml }); } catch(e) {}
+        }
     });
 
     // -------------------------------------------------------------------------
@@ -89,11 +97,14 @@
             return;
         }
 
-        // GrapesJS 0.14.x: guardar components + styles (no getProjectData)
-        var projectData = {
-            components: editor.getComponents(),
-            styles:     editor.getStyle(),
-        };
+        // Serializar según versión de GrapesJS disponible
+        var projectData;
+        if ( typeof editor.getProjectData === 'function' ) {
+            projectData = editor.getProjectData();
+        } else {
+            projectData = { components: editor.getComponents(), styles: editor.getStyle() };
+        }
+
         var html = editor.getHtml() || '';
 
         var fd = new FormData();
@@ -155,6 +166,7 @@
             .catch(function(){ showStatus('Error de red.', 'error'); });
     });
 
+    // -------------------------------------------------------------------------
     function showStatus(msg, type) {
         var el = document.getElementById('wea-builder-status');
         if (!el) return;
