@@ -48,11 +48,10 @@
     // Init GrapesJS
     // -------------------------------------------------------------------------
 
-    // grapesjs-mjml registra el plugin como window['grapesjs-mjml'] al cargarse por CDN
-    var mjmlPlugin = window['grapesjs-mjml'];
-
-    if ( ! mjmlPlugin ) {
-        showStatus('Error: no se pudo cargar el plugin MJML. Recarga la página.', 'error');
+    // grapesjs-mjml 0.4.x se auto-registra llamando a grapesjs.plugins.add('grapesjs-mjml', fn)
+    // al cargarse el script — basta con pasar el string 'grapesjs-mjml' en plugins[].
+    if ( typeof grapesjs === 'undefined' ) {
+        showStatus('Error: GrapesJS no cargó. Comprueba la conexión a internet.', 'error');
         return;
     }
 
@@ -60,11 +59,10 @@
         container: '#gjs',
         fromElement: false,
         storageManager: false,
-        plugins: [ mjmlPlugin ],
+        plugins: [ 'grapesjs-mjml' ],
         pluginsOpts: {
-            [mjmlPlugin]: {
-                columnsPadding:   '0 0 0 0',
-                useCustomTheme:   false,
+            'grapesjs-mjml': {
+                columnsPadding: '0 0 0 0',
             }
         },
         // Paneles: bloques a la izquierda, estilos/propiedades a la derecha
