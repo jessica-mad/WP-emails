@@ -2,27 +2,8 @@
 (function () {
     'use strict';
 
-    // ── Debug panel ──────────────────────────────────────────────
-    var debugEl = document.createElement('div');
-    debugEl.id  = 'wea-debug';
-    debugEl.style.cssText = 'position:fixed;bottom:0;left:0;right:0;max-height:200px;overflow-y:auto;background:#0f172a;color:#94a3b8;font:12px/1.5 monospace;padding:8px 12px;z-index:999999;border-top:2px solid #6366f1;';
-    document.body.appendChild(debugEl);
-
-    function log(msg, color) {
-        var line = document.createElement('div');
-        line.style.color = color || '#94a3b8';
-        line.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg;
-        debugEl.appendChild(line);
-        debugEl.scrollTop = debugEl.scrollHeight;
-        console.log('[WEA Builder]', msg);
-    }
-
-    log('Script iniciado');
-    log('grapesjs cargado: ' + (typeof grapesjs !== 'undefined'), typeof grapesjs !== 'undefined' ? '#4ade80' : '#f87171');
-    log('window["grapesjs-mjml"]: ' + typeof window['grapesjs-mjml'], '#facc15');
-
     if ( typeof grapesjs === 'undefined' ) {
-        log('ERROR: GrapesJS no disponible — abortando', '#f87171');
+        document.getElementById('gjs').innerHTML = '<p style="padding:20px;color:red">Error: GrapesJS no cargó.</p>';
         return;
     }
 
@@ -54,14 +35,11 @@
         '</mjml>',
     ].join('\n');
 
-    // grapesjs-mjml 1.x UMD: puede ser la función directamente o { default: fn }
+    // grapesjs-mjml 1.x UMD: puede ser función directa o { default: fn }
     var mjmlRaw    = window['grapesjs-mjml'];
-    var mjmlPlugin = mjmlRaw && typeof mjmlRaw === 'function'
+    var mjmlPlugin = typeof mjmlRaw === 'function'
         ? mjmlRaw
         : ( mjmlRaw && typeof mjmlRaw.default === 'function' ? mjmlRaw.default : null );
-
-    log('mjmlPlugin resuelto: ' + ( mjmlPlugin ? 'función ✓' : 'NULL — bloques MJML no cargarán' ), mjmlPlugin ? '#4ade80' : '#f87171');
-    log('GrapesJS version: ' + ( grapesjs.version || 'desconocida' ), '#facc15');
 
     var editorConfig = {
         container:      '#gjs',
@@ -69,14 +47,6 @@
         storageManager: false,
         height:         'calc(100vh - 96px)',
         width:          'auto',
-        // Renderizar canvas en el DOM principal, NO en iframe
-        // Esto resuelve el bug de drag & drop entre documento e iframe
-        // en GrapesJS 0.21+
-        canvas: {
-            styles:  [],
-            scripts: [],
-        },
-        protectedCss: '',
     };
 
     if ( mjmlPlugin ) {
@@ -85,77 +55,29 @@
         editorConfig.pluginsOpts[ mjmlPlugin ] = {};
     }
 
-    var editor;
-    try {
-        editor = grapesjs.init( editorConfig );
-        log('grapesjs.init() OK', '#4ade80');
-    } catch(e) {
-        log('ERROR en grapesjs.init(): ' + e.message, '#f87171');
-        return;
-    }
+    var editor = grapesjs.init( editorConfig );
 
     // -------------------------------------------------------------------------
-    // Cargar contenido inicial
+    // CARGAR: usar setComponents() con el string MJML guardado
+    // (loadProjectData produce wrapper genérico y rompe el drag & drop MJML)
     // -------------------------------------------------------------------------
     editor.on('load', function () {
-        log('editor "load" event disparado', '#4ade80');
+        try { editor.runCommand('open-blocks'); } catch(e) {}
 
-        var blocks = editor.BlockManager.getAll();
-        log('Bloques registrados: ' + blocks.length, blocks.length ? '#4ade80' : '#f87171');
+        var mjmlToLoad = null;
 
-        // Inspeccionar el wrapper del canvas
-        var wrapper = editor.getWrapper();
-        log('Wrapper type: "' + wrapper.get('type') + '" tagName: "' + wrapper.get('tagName') + '"', '#facc15');
-        log('Wrapper children: ' + wrapper.components().length, '#facc15');
-        log('Wrapper droppable: ' + wrapper.get('droppable'), '#facc15');
-
-        // Abrir bloques por defecto
-        try { editor.runCommand('open-blocks'); log('open-blocks OK', '#4ade80'); } catch(e) { log('open-blocks ERR: ' + e.message, '#f87171'); }
-
-        // Intentar cargar datos guardados
-        var loadedOk = false;
-        if ( savedData.mjml_json && savedData.mjml_json !== 'null' ) {
-            try {
-                var data = JSON.parse( savedData.mjml_json );
-                log('Datos guardados parseados. Keys: ' + Object.keys(data).join(', '), '#facc15');
-                if ( data && typeof data === 'object' ) {
-                    if ( typeof editor.loadProjectData === 'function' ) {
-                        editor.loadProjectData( data );
-                    } else if ( data.components ) {
-                        editor.setComponents( data.components );
-                        if ( data.styles ) editor.setStyle( data.styles );
-                    }
-                    var childCount = editor.getWrapper().components().length;
-                    log('Tras load: children = ' + childCount, childCount > 0 ? '#4ade80' : '#f87171');
-                    loadedOk = childCount > 0;
-                }
-            } catch (e) { log('Load data ERR: ' + e.message, '#f87171'); }
+        // Si hay contenido guardado, es un string MJML directo
+        if ( savedData.mjml_content && savedData.mjml_content.length > 10 ) {
+            mjmlToLoad = savedData.mjml_content;
         }
 
-        // Si no hay contenido cargado, usar plantilla por defecto
-        if ( ! loadedOk ) {
-            log('Canvas vacío → ejecutando mjml-import con plantilla por defecto', '#facc15');
-            try {
-                editor.runCommand('mjml-import', { content: defaultMjml });
-                var childCount2 = editor.getWrapper().components().length;
-                log('mjml-import OK — children: ' + childCount2, childCount2 > 0 ? '#4ade80' : '#f87171');
-            } catch(e) {
-                log('mjml-import ERR: ' + e.message, '#f87171');
-            }
-        }
-
-        // Log estado final del wrapper
-        setTimeout(function(){
-            var w = editor.getWrapper();
-            log('FINAL wrapper type="' + w.get('type') + '" droppable=' + w.get('droppable') + ' children=' + w.components().length, '#60a5fa');
-            w.components().each(function(c, i){
-                if (i < 4) log('  child[' + i + ']: type="' + c.get('type') + '" droppable=' + c.get('droppable') + ' draggable=' + c.get('draggable'), '#60a5fa');
-            });
-        }, 600);
+        // setComponents() con MJML crea la jerarquía mjml > mj-body > mj-section
+        // que el plugin necesita para que el drag & drop funcione
+        editor.setComponents( mjmlToLoad || defaultMjml );
     });
 
     // -------------------------------------------------------------------------
-    // Guardar
+    // GUARDAR: editor.getHtml() devuelve el MJML como string de tags
     // -------------------------------------------------------------------------
     document.getElementById('wea-save-btn').addEventListener('click', function () {
         var name    = document.getElementById('wea-tmpl-name').value.trim();
@@ -167,24 +89,19 @@
             return;
         }
 
-        // Serializar según versión de GrapesJS disponible
-        var projectData;
-        if ( typeof editor.getProjectData === 'function' ) {
-            projectData = editor.getProjectData();
-        } else {
-            projectData = { components: editor.getComponents(), styles: editor.getStyle() };
-        }
-
-        var html = editor.getHtml() || '';
+        // getHtml() en modo grapesjs-mjml devuelve el MJML como string
+        var mjmlContent = editor.getHtml() || '';
+        // html compilado para los envíos reales
+        var html        = mjmlContent;
 
         var fd = new FormData();
-        fd.append('action',      'wea_save_template');
-        fd.append('_ajax_nonce', weaAdmin.nonce);
-        fd.append('id',          templateId);
-        fd.append('name',        name);
-        fd.append('subject',     subject);
-        fd.append('mjml_json',   JSON.stringify(projectData));
-        fd.append('html',        html);
+        fd.append('action',       'wea_save_template');
+        fd.append('_ajax_nonce',  weaAdmin.nonce);
+        fd.append('id',           templateId);
+        fd.append('name',         name);
+        fd.append('subject',      subject);
+        fd.append('mjml_content', mjmlContent);
+        fd.append('html',         html);
 
         showStatus('Guardando…', 'info');
 
@@ -236,7 +153,6 @@
             .catch(function(){ showStatus('Error de red.', 'error'); });
     });
 
-    // -------------------------------------------------------------------------
     function showStatus(msg, type) {
         var el = document.getElementById('wea-builder-status');
         if (!el) return;

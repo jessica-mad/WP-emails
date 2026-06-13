@@ -81,8 +81,7 @@ if ( $action === 'list' ) :
 
 <script>
 var weaTemplateData = <?php echo wp_json_encode( [
-    'mjml_json' => $template['mjml_json'] ?? null,
-    'html'      => $template['html']      ?? null,
+    'mjml_content' => $template['mjml_content'] ?? null,
 ] ); ?>;
 </script>
 <style>

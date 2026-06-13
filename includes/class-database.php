@@ -12,13 +12,13 @@ class Database {
 
         // Email templates
         dbDelta( "CREATE TABLE {$wpdb->prefix}wea_templates (
-            id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-            name        VARCHAR(191)    NOT NULL,
-            subject     VARCHAR(500)    NOT NULL DEFAULT '',
-            mjml_json   LONGTEXT        NOT NULL,
-            html        LONGTEXT        NOT NULL,
-            created_at  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            updated_at  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            id           BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            name         VARCHAR(191)    NOT NULL,
+            subject      VARCHAR(500)    NOT NULL DEFAULT '',
+            mjml_content LONGTEXT        NOT NULL,
+            html         LONGTEXT        NOT NULL,
+            created_at   DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at   DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (id)
         ) $charset;" );
 

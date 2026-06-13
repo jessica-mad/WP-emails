@@ -182,11 +182,11 @@ class Admin {
         if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
 
         $id = TemplateManager::save( [
-            'id'        => absint( $_POST['id']        ?? 0 ),
-            'name'      => sanitize_text_field( $_POST['name']    ?? '' ),
-            'subject'   => sanitize_text_field( $_POST['subject'] ?? '' ),
-            'mjml_json' => stripslashes( $_POST['mjml_json']      ?? '{}' ),
-            'html'      => stripslashes( $_POST['html']           ?? '' ),
+            'id'           => absint( $_POST['id']           ?? 0 ),
+            'name'         => sanitize_text_field( $_POST['name']    ?? '' ),
+            'subject'      => sanitize_text_field( $_POST['subject'] ?? '' ),
+            'mjml_content' => stripslashes( $_POST['mjml_content']   ?? '' ),
+            'html'         => stripslashes( $_POST['html']           ?? '' ),
         ] );
 
         wp_send_json_success( [ 'id' => $id ] );

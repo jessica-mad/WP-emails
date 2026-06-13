@@ -27,10 +27,10 @@ class TemplateManager {
         $now = current_time( 'mysql' );
 
         $fields = [
-            'name'      => sanitize_text_field( $data['name'] ?? '' ),
-            'subject'   => sanitize_text_field( $data['subject'] ?? '' ),
-            'mjml_json' => $data['mjml_json'] ?? '{}',
-            'html'      => $data['html'] ?? '',
+            'name'         => sanitize_text_field( $data['name']         ?? '' ),
+            'subject'      => sanitize_text_field( $data['subject']      ?? '' ),
+            'mjml_content' => $data['mjml_content']                      ?? '',
+            'html'         => $data['html']                              ?? '',
         ];
 
         if ( ! empty( $data['id'] ) ) {
