@@ -116,11 +116,11 @@ class Admin {
         if ( ! current_user_can( 'manage_options' ) ) wp_die( 'Forbidden' );
 
         $id = TemplateManager::save( [
-            'id'       => absint( $_POST['id'] ?? 0 ),
-            'name'     => sanitize_text_field( $_POST['name'] ?? '' ),
-            'subject'  => sanitize_text_field( $_POST['subject'] ?? '' ),
-            'mjml_json' => stripslashes( $_POST['mjml_json'] ?? '{}' ),
-            'html'     => wp_kses_post( stripslashes( $_POST['html'] ?? '' ) ),
+            'id'           => absint( $_POST['id']           ?? 0 ),
+            'name'         => sanitize_text_field( $_POST['name']    ?? '' ),
+            'subject'      => sanitize_text_field( $_POST['subject'] ?? '' ),
+            'mjml_content' => stripslashes( $_POST['mjml_content']   ?? '' ),
+            'html'         => stripslashes( $_POST['html']           ?? '' ),
         ] );
 
         wp_safe_redirect( add_query_arg( [ 'page' => 'wea-templates', 'saved' => 1, 'id' => $id ], admin_url( 'admin.php' ) ) );
