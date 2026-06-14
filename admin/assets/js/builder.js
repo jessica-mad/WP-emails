@@ -65,15 +65,46 @@
         try { editor.runCommand('open-blocks'); } catch(e) {}
 
         var mjmlToLoad = null;
-
-        // Si hay contenido guardado, es un string MJML directo
         if ( savedData.mjml_content && savedData.mjml_content.length > 10 ) {
             mjmlToLoad = savedData.mjml_content;
         }
-
-        // setComponents() con MJML crea la jerarquía mjml > mj-body > mj-section
-        // que el plugin necesita para que el drag & drop funcione
         editor.setComponents( mjmlToLoad || defaultMjml );
+
+        // ── Fix cross-iframe drag & drop ─────────────────────────────────────
+        // El canvas de GrapesJS vive en un <iframe>. El navegador no propaga
+        // mousemove/mouseup del documento principal al iframe durante un drag,
+        // por lo que el sorter nunca detecta dónde se suelta el bloque.
+        // Solución: reenviar manualmente esos eventos al documento del iframe,
+        // traduciendo las coordenadas al sistema de referencia del iframe.
+        try {
+            var frameEl  = editor.Canvas.getFrameEl();
+            var frameWin = frameEl.contentWindow;
+            var frameDoc = frameEl.contentDocument || frameWin.document;
+
+            ['mousemove', 'mouseup', 'mousedown'].forEach(function (evtName) {
+                document.addEventListener(evtName, function (e) {
+                    try {
+                        var rect = frameEl.getBoundingClientRect();
+                        frameDoc.dispatchEvent( new MouseEvent(evtName, {
+                            bubbles:    true,
+                            cancelable: true,
+                            view:       frameWin,
+                            button:     e.button,
+                            buttons:    e.buttons,
+                            clientX:    e.clientX - rect.left,
+                            clientY:    e.clientY - rect.top,
+                            screenX:    e.screenX,
+                            screenY:    e.screenY,
+                            ctrlKey:    e.ctrlKey,
+                            shiftKey:   e.shiftKey,
+                            altKey:     e.altKey,
+                            metaKey:    e.metaKey,
+                        }) );
+                    } catch(_) {}
+                }, { passive: true });
+            });
+        } catch(e) {}
+        // ────────────────────────────────────────────────────────────────────
     });
 
     // -------------------------------------------------------------------------
