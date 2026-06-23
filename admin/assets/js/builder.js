@@ -122,8 +122,17 @@
 
         // getHtml() en modo grapesjs-mjml devuelve el MJML como string
         var mjmlContent = editor.getHtml() || '';
-        // html compilado para los envíos reales
-        var html        = mjmlContent;
+
+        // El canvas de GrapesJS-MJML ya tiene el HTML compilado en el iframe.
+        // Lo extraemos directamente de ahí para enviar en los emails reales.
+        var html = mjmlContent; // fallback
+        try {
+            var frameDoc = editor.Canvas.getFrameEl().contentDocument;
+            var compiled = '<!DOCTYPE html>\n' + frameDoc.documentElement.outerHTML;
+            if ( compiled && compiled.length > 100 ) {
+                html = compiled;
+            }
+        } catch(_) {}
 
         var fd = new FormData();
         fd.append('action',       'wea_save_template');
@@ -163,6 +172,11 @@
 
         var subject = document.getElementById('wea-tmpl-subject').value.trim() || 'Email de prueba';
         var html    = editor.getHtml() || '';
+        try {
+            var frameDoc = editor.Canvas.getFrameEl().contentDocument;
+            var compiled = '<!DOCTYPE html>\n' + frameDoc.documentElement.outerHTML;
+            if ( compiled && compiled.length > 100 ) { html = compiled; }
+        } catch(_) {}
 
         var fd = new FormData();
         fd.append('action',      'wea_test_email');
