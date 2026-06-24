@@ -207,7 +207,7 @@ if (in_array($action, ['edit', 'new'], true)) {
         async function ajaxPost(data) {
             const fd = new FormData();
             Object.entries(data).forEach(([k, v]) => fd.append(k, v));
-            fd.append('nonce', nonce);
+            fd.append('_ajax_nonce', nonce);
             const r = await fetch(ajaxUrl, { method: 'POST', body: fd });
             return r.json();
         }
@@ -425,7 +425,7 @@ $status_labels = [
     async function ajaxPost(data) {
         const fd = new FormData();
         Object.entries(data).forEach(([k, v]) => fd.append(k, v));
-        fd.append('nonce', nonce);
+        fd.append('_ajax_nonce', nonce);
         const r = await fetch(ajaxUrl, { method: 'POST', body: fd });
         return r.json();
     }
