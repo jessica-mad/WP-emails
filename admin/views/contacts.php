@@ -218,8 +218,8 @@ if ($section === 'tags') {
                 <option value="complained"><?php esc_html_e('Complained', 'wp-email-automations'); ?></option>
                 <option value="pending"><?php esc_html_e('Pending', 'wp-email-automations'); ?></option>
             </select>
-            <?php if (!empty($all_tags)): ?>
             <label><?php esc_html_e('Tags', 'wp-email-automations'); ?></label>
+            <?php if (!empty($all_tags)): ?>
             <div class="wea-tags-grid" id="cm-tags">
                 <?php foreach ($all_tags as $tag): ?>
                 <span>
@@ -230,6 +230,13 @@ if ($section === 'tags') {
                 </span>
                 <?php endforeach; ?>
             </div>
+            <?php else: ?>
+            <p style="margin:4px 0 8px;color:#888;font-size:13px">
+                <?php echo wp_kses(sprintf(
+                    __('No hay tags todavía. <a href="%s">Crear tags</a>', 'wp-email-automations'),
+                    admin_url('admin.php?page=wea-contacts&section=tags')
+                ), ['a' => ['href' => []]]); ?>
+            </p>
             <?php endif; ?>
             <p id="cm-error" style="color:#dc3232;display:none"></p>
             <div class="wea-modal__actions">
@@ -434,6 +441,9 @@ if ($section === 'tags'):
             document.getElementById('wea-tag-color').value = this.dataset.color;
             document.getElementById('wea-tag-form-title').textContent = '<?php echo esc_js(__('Editar tag', 'wp-email-automations')); ?>';
             document.getElementById('wea-cancel-tag-btn').style.display = '';
+            const nameEl = document.getElementById('wea-tag-name');
+            nameEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            nameEl.focus();
         });
     });
 
