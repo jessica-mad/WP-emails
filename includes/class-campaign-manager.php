@@ -165,10 +165,8 @@ class CampaignManager {
 
         self::_create_send_rows( $campaign_id, $recipients );
 
-        wp_schedule_single_event( time(), 'wea_process_campaign', [ $campaign_id ] );
-
-        // Trigger cron via loopback so it runs immediately without waiting for next visit
-        spawn_cron();
+        // Run synchronously — don't rely on WP-Cron (loopback blocked on many hosts)
+        self::process( $campaign_id );
         return true;
     }
 
@@ -228,8 +226,16 @@ class CampaignManager {
 
     public static function process( int $campaign_id ): void {
         global $wpdb;
+        @set_time_limit( 300 );
         $campaign = self::get( $campaign_id );
         if ( ! $campaign || ! in_array( $campaign['status'], [ 'sending', 'scheduled' ], true ) ) {
+            $wpdb->insert( $wpdb->prefix . 'wea_logs', [
+                'event_key' => 'campaign',
+                'to_email'  => '',
+                'subject'   => '',
+                'status'    => 'failed',
+                'message'   => "Campaign {$campaign_id} process() aborted: status=" . ( $campaign['status'] ?? 'not found' ),
+            ] );
             return;
         }
 

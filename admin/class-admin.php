@@ -403,10 +403,24 @@ class Admin {
     public static function ajax_send_campaign(): void {
         check_ajax_referer('wea_admin');
         if (!current_user_can('manage_options')) wp_send_json_error('Forbidden', 403);
+        @set_time_limit( 300 );
         $id = absint($_POST['id'] ?? 0);
-        CampaignManager::dispatch($id)
-            ? wp_send_json_success(['message' => 'Campaign dispatched'])
-            : wp_send_json_error('Could not dispatch campaign');
+        if ( ! $id ) wp_send_json_error('Invalid campaign ID');
+        $ok = CampaignManager::dispatch($id);
+        if ( ! $ok ) {
+            // Check why: no recipients?
+            $campaign = CampaignManager::get($id);
+            if ( ! $campaign ) wp_send_json_error('Campaign not found');
+            $recipients = CampaignManager::get_recipients($id);
+            if ( empty($recipients) ) wp_send_json_error('No recipients found — check contact list and filters');
+            wp_send_json_error('Could not dispatch campaign');
+        }
+        $campaign = CampaignManager::get($id);
+        wp_send_json_success([
+            'message'    => 'Campaign sent',
+            'total_sent' => $campaign['total_sent'] ?? 0,
+            'status'     => $campaign['status'] ?? 'sent',
+        ]);
     }
 
     public static function ajax_schedule_campaign(): void {
