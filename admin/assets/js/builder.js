@@ -108,8 +108,6 @@ function renderCanvas() {
         container.appendChild(makeBlockEl(block, idx));
     });
     container.appendChild(makeDropIndicator(state.blocks.length));
-
-    setupCanvasDrop(container);
 }
 
 function makeDropIndicator(idx) {
@@ -520,5 +518,8 @@ if (gBtn) {
 loadState();
 render();
 setupLibraryDrag();
+// setupCanvasDrop se registra UNA sola vez aquí; si estuviera dentro de
+// renderCanvas() se acumularían listeners en cada re-render → N drops por evento.
+setupCanvasDrop( document.getElementById('wea-canvas-inner') );
 
 })();
