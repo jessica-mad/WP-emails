@@ -233,20 +233,28 @@ if (in_array($action, ['edit', 'new'], true)) {
         const btnSendNow = document.getElementById('wea-send-now');
         if (btnSendNow) {
             btnSendNow.addEventListener('click', async function() {
+                if (this.disabled) return;
+                this.disabled = true;
+                this.textContent = '<?php echo esc_js(__('Enviando…', 'wp-email-automations')); ?>';
                 const data = getFormData();
-                // First save
                 data.action = 'wea_save_campaign';
                 const saveRes = await ajaxPost(data);
-                if (!saveRes.success) { showMsg(saveRes.data || 'Error', true); return; }
+                if (!saveRes.success) {
+                    showMsg(saveRes.data || 'Error', true);
+                    this.disabled = false;
+                    this.textContent = '<?php echo esc_js(__('Enviar ahora', 'wp-email-automations')); ?>';
+                    return;
+                }
                 const id = saveRes.data.id;
                 document.getElementById('campaign-id').value = id;
-                // Then dispatch
-                const dispRes = await ajaxPost({ action: 'wea_send_campaign', id, nonce });
+                const dispRes = await ajaxPost({ action: 'wea_send_campaign', id });
                 if (dispRes.success) {
-                    showMsg('<?php esc_html_e('Campaña enviando...', 'wp-email-automations'); ?>');
-                    setTimeout(() => { window.location = '?page=wea-campaigns'; }, 1500);
+                    showMsg('✓ <?php echo esc_js(__('Campaña enviada:', 'wp-email-automations')); ?> ' + (dispRes.data.total_sent || 0) + ' <?php echo esc_js(__('emails', 'wp-email-automations')); ?>');
+                    setTimeout(() => { window.location = '?page=wea-campaigns'; }, 2000);
                 } else {
                     showMsg(dispRes.data || 'Error', true);
+                    this.disabled = false;
+                    this.textContent = '<?php echo esc_js(__('Enviar ahora', 'wp-email-automations')); ?>';
                 }
             });
         }

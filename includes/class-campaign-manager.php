@@ -145,8 +145,8 @@ class CampaignManager {
     public static function dispatch( int $campaign_id ): bool {
         global $wpdb;
         $campaign = self::get( $campaign_id );
-        if ( ! $campaign ) {
-            return false;
+        if ( ! $campaign || ! in_array( $campaign['status'], [ 'draft', 'scheduled' ], true ) ) {
+            return false; // Already sent/sending — prevent double dispatch
         }
 
         // Prepare recipients + send rows
@@ -204,19 +204,19 @@ class CampaignManager {
 
     private static function _create_send_rows( int $campaign_id, array $recipients ): void {
         global $wpdb;
+        $table = $wpdb->prefix . 'wea_campaign_sends';
         foreach ( $recipients as $contact ) {
             $token = self::generate_token( $campaign_id, (int) $contact['id'] );
-            $wpdb->replace(
-                $wpdb->prefix . 'wea_campaign_sends',
-                [
-                    'campaign_id' => $campaign_id,
-                    'contact_id'  => (int) $contact['id'],
-                    'email'       => $contact['email'],
-                    'token'       => $token,
-                    'status'      => 'pending',
-                ],
-                [ '%d', '%d', '%s', '%s', '%s' ]
-            );
+            // INSERT IGNORE — never overwrite an already-sent row
+            $wpdb->query( $wpdb->prepare(
+                "INSERT IGNORE INTO {$table}
+                 (campaign_id, contact_id, email, token, status)
+                 VALUES (%d, %d, %s, %s, 'pending')",
+                $campaign_id,
+                (int) $contact['id'],
+                $contact['email'],
+                $token
+            ) );
         }
     }
 
