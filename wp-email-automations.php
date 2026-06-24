@@ -63,6 +63,11 @@ function wea_init(): void {
         ]);
     });
 
+    // Auto-upgrade DB tables when version changes (no need to reinstall manually)
+    if ( get_option( 'wea_db_version' ) !== WEA_DB_VERSION ) {
+        WEA\Database::create_tables();
+    }
+
     WEA\EventReceiver::init();
     WEA\Automation::init();
 
