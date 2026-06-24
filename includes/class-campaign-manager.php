@@ -166,6 +166,9 @@ class CampaignManager {
         self::_create_send_rows( $campaign_id, $recipients );
 
         wp_schedule_single_event( time(), 'wea_process_campaign', [ $campaign_id ] );
+
+        // Trigger cron via loopback so it runs immediately without waiting for next visit
+        spawn_cron();
         return true;
     }
 
@@ -249,22 +252,48 @@ class CampaignManager {
         );
 
         // Resolve body HTML from template at send time
-        $base_html = $campaign['body_html'];
+        $base_html = $campaign['body_html'] ?? '';
         if ( $campaign['template_id'] ) {
             $template = TemplateManager::get( (int) $campaign['template_id'] );
-            if ( $template && ! empty( $template['html'] ) ) {
-                $base_html = $template['html'];
-                // Cache compiled HTML on campaign
-                $wpdb->update(
-                    $wpdb->prefix . 'wea_campaigns',
-                    [ 'body_html' => $base_html ],
-                    [ 'id' => $campaign_id ],
-                    [ '%s' ],
-                    [ '%d' ]
-                );
+            if ( $template ) {
+                $mjml        = $template['mjml_content'] ?? '';
+                $stored_html = $template['html'] ?? '';
+
+                if ( ! empty( trim( $stored_html ) ) && ! self::_is_mjml( $stored_html ) && ! self::_is_block_json( $stored_html ) ) {
+                    $base_html = $stored_html;
+                } elseif ( self::_is_block_json( $mjml ) ) {
+                    $base_html = BlockRenderer::to_html( $mjml );
+                } elseif ( ! empty( trim( $mjml ) ) ) {
+                    $base_html = EmailSender::compile_mjml( $mjml ) ?: $stored_html;
+                }
+
+                if ( $base_html ) {
+                    $wpdb->update(
+                        $wpdb->prefix . 'wea_campaigns',
+                        [ 'body_html' => $base_html ],
+                        [ 'id' => $campaign_id ],
+                        [ '%s' ],
+                        [ '%d' ]
+                    );
+                }
             }
         }
         $campaign['body_html'] = $base_html;
+
+        if ( empty( trim( $base_html ) ) ) {
+            // Nothing to send — log and abort
+            $wpdb->insert( $wpdb->prefix . 'wea_logs', [
+                'automation_id' => null,
+                'queue_id'      => null,
+                'event_key'     => 'campaign',
+                'to_email'      => '',
+                'subject'       => $campaign['subject'] ?? '',
+                'status'        => 'failed',
+                'message'       => "Campaign {$campaign_id}: template HTML is empty — check the template has content.",
+            ] );
+            $wpdb->update( $wpdb->prefix . 'wea_campaigns', [ 'status' => 'draft' ], [ 'id' => $campaign_id ], [ '%s' ], [ '%d' ] );
+            return;
+        }
 
         $from_name  = $campaign['from_name']  ?: get_option( 'blogname' );
         $from_email = $campaign['from_email'] ?: get_option( 'admin_email' );
@@ -303,6 +332,16 @@ class CampaignManager {
                     [ '%d' ]
                 );
             }
+
+            $wpdb->insert( $wpdb->prefix . 'wea_logs', [
+                'automation_id' => null,
+                'queue_id'      => null,
+                'event_key'     => 'campaign',
+                'to_email'      => $email,
+                'subject'       => $campaign['subject'],
+                'status'        => $sent ? 'sent' : 'failed',
+                'message'       => "Campaign ID {$campaign_id}",
+            ] );
         }
 
         $wpdb->update(
@@ -510,5 +549,21 @@ class CampaignManager {
             [ '%s' ],
             [ '%d' ]
         );
+    }
+
+    private static function _is_mjml( string $s ): bool {
+        $t = ltrim( $s );
+        return str_starts_with( $t, '<mjml' ) || str_starts_with( $t, '<mj-' );
+    }
+
+    private static function _is_block_json( string $s ): bool {
+        $t = ltrim( $s );
+        if ( ! str_starts_with( $t, '{' ) ) return false;
+        try {
+            $d = json_decode( $t, true, 512, JSON_THROW_ON_ERROR );
+            return is_array( $d ) && isset( $d['version'] ) && $d['version'] === 1;
+        } catch ( \JsonException $e ) {
+            return false;
+        }
     }
 }
