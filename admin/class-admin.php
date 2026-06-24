@@ -368,4 +368,110 @@ class Admin {
 
         wp_send_json_success(['message' => $msg, 'updated' => $updated]);
     }
+
+    // -------------------------------------------------------------------------
+    // Campaigns AJAX
+    // -------------------------------------------------------------------------
+
+    public static function ajax_save_campaign(): void {
+        check_ajax_referer('wea_admin');
+        if (!current_user_can('manage_options')) wp_send_json_error('Forbidden', 403);
+
+        $id = CampaignManager::save([
+            'id'            => absint($_POST['id'] ?? 0),
+            'name'          => sanitize_text_field($_POST['name'] ?? ''),
+            'subject'       => sanitize_text_field($_POST['subject'] ?? ''),
+            'from_name'     => sanitize_text_field($_POST['from_name'] ?? ''),
+            'from_email'    => sanitize_email($_POST['from_email'] ?? ''),
+            'template_id'   => absint($_POST['template_id'] ?? 0) ?: null,
+            'body_html'     => wp_kses_post(stripslashes($_POST['body_html'] ?? '')),
+            'filter_tags'   => sanitize_text_field($_POST['filter_tags'] ?? ''),
+            'filter_status' => sanitize_key($_POST['filter_status'] ?? 'subscribed'),
+            'status'        => sanitize_key($_POST['status'] ?? 'draft'),
+        ]);
+
+        $id ? wp_send_json_success(['id' => $id]) : wp_send_json_error('Could not save campaign');
+    }
+
+    public static function ajax_delete_campaign(): void {
+        check_ajax_referer('wea_admin');
+        if (!current_user_can('manage_options')) wp_send_json_error('Forbidden', 403);
+        CampaignManager::delete(absint($_POST['id'] ?? 0))
+            ? wp_send_json_success() : wp_send_json_error('Cannot delete (not a draft or not found)');
+    }
+
+    public static function ajax_send_campaign(): void {
+        check_ajax_referer('wea_admin');
+        if (!current_user_can('manage_options')) wp_send_json_error('Forbidden', 403);
+        $id = absint($_POST['id'] ?? 0);
+        CampaignManager::dispatch($id)
+            ? wp_send_json_success(['message' => 'Campaign dispatched'])
+            : wp_send_json_error('Could not dispatch campaign');
+    }
+
+    public static function ajax_schedule_campaign(): void {
+        check_ajax_referer('wea_admin');
+        if (!current_user_can('manage_options')) wp_send_json_error('Forbidden', 403);
+        $id       = absint($_POST['id'] ?? 0);
+        $datetime = sanitize_text_field($_POST['scheduled_at'] ?? '');
+        CampaignManager::schedule($id, $datetime)
+            ? wp_send_json_success(['message' => 'Campaign scheduled'])
+            : wp_send_json_error('Could not schedule campaign (check datetime is in the future)');
+    }
+
+    public static function ajax_cancel_campaign(): void {
+        check_ajax_referer('wea_admin');
+        if (!current_user_can('manage_options')) wp_send_json_error('Forbidden', 403);
+        CampaignManager::cancel(absint($_POST['id'] ?? 0))
+            ? wp_send_json_success() : wp_send_json_error('Cannot cancel');
+    }
+
+    public static function ajax_campaign_stats(): void {
+        check_ajax_referer('wea_admin');
+        if (!current_user_can('manage_options')) wp_send_json_error('Forbidden', 403);
+        $id    = absint($_POST['id'] ?? 0);
+        $stats = CampaignManager::get_send_stats($id);
+        wp_send_json_success(['stats' => $stats]);
+    }
+
+    public static function ajax_preview_recipients(): void {
+        check_ajax_referer('wea_admin');
+        if (!current_user_can('manage_options')) wp_send_json_error('Forbidden', 403);
+
+        // Build a temporary campaign-like array to reuse get_recipients logic
+        // We need to temporarily save or just replicate the logic inline
+        $filter_tags   = sanitize_text_field($_POST['filter_tags'] ?? '');
+        $filter_status = sanitize_key($_POST['filter_status'] ?? 'subscribed');
+
+        // Temporarily insert a draft, get recipients, delete it
+        global $wpdb;
+        $tag_ids = array_filter(array_map('intval', explode(',', $filter_tags)));
+
+        if (!empty($tag_ids)) {
+            $placeholders = implode(',', array_fill(0, count($tag_ids), '%d'));
+            $params       = array_merge([$filter_status], $tag_ids);
+            $contacts = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT DISTINCT c.email FROM {$wpdb->prefix}wea_contacts c
+                     INNER JOIN {$wpdb->prefix}wea_contact_tags ct ON ct.contact_id = c.id
+                     WHERE c.status = %s AND ct.tag_id IN ($placeholders)",
+                    ...$params
+                ),
+                ARRAY_A
+            );
+        } else {
+            $contacts = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT email FROM {$wpdb->prefix}wea_contacts WHERE status = %s",
+                    $filter_status
+                ),
+                ARRAY_A
+            );
+        }
+
+        $emails = array_column($contacts ?? [], 'email');
+        $sample = array_slice($emails, 0, 5);
+
+        wp_send_json_success(['count' => count($emails), 'sample' => $sample]);
+    }
 }

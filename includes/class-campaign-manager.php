@@ -248,6 +248,24 @@ class CampaignManager {
             ARRAY_A
         );
 
+        // Resolve body HTML from template at send time
+        $base_html = $campaign['body_html'];
+        if ( $campaign['template_id'] ) {
+            $template = TemplateManager::get( (int) $campaign['template_id'] );
+            if ( $template && ! empty( $template['html'] ) ) {
+                $base_html = $template['html'];
+                // Cache compiled HTML on campaign
+                $wpdb->update(
+                    $wpdb->prefix . 'wea_campaigns',
+                    [ 'body_html' => $base_html ],
+                    [ 'id' => $campaign_id ],
+                    [ '%s' ],
+                    [ '%d' ]
+                );
+            }
+        }
+        $campaign['body_html'] = $base_html;
+
         $from_name  = $campaign['from_name']  ?: get_option( 'blogname' );
         $from_email = $campaign['from_email'] ?: get_option( 'admin_email' );
         $headers    = [

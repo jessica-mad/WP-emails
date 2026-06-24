@@ -61,6 +61,29 @@ class EventReceiver {
             'callback'            => static fn() => new \WP_REST_Response( [ 'status' => 'ok', 'version' => WEA_VERSION ] ),
             'permission_callback' => [ __CLASS__, 'authenticate' ],
         ] );
+
+        // Campaign tracking — open pixel
+        register_rest_route( 'wea/v1', '/track/open', [
+            'methods'             => \WP_REST_Server::READABLE,
+            'callback'            => [ __CLASS__, 'handle_track_open' ],
+            'permission_callback' => '__return_true',
+            'args'                => [
+                'sid'   => [ 'required' => true, 'type' => 'integer', 'sanitize_callback' => 'absint' ],
+                'token' => [ 'required' => true, 'type' => 'string',  'sanitize_callback' => 'sanitize_text_field' ],
+            ],
+        ] );
+
+        // Campaign tracking — click redirect
+        register_rest_route( 'wea/v1', '/track/click', [
+            'methods'             => \WP_REST_Server::READABLE,
+            'callback'            => [ __CLASS__, 'handle_track_click' ],
+            'permission_callback' => '__return_true',
+            'args'                => [
+                'sid'   => [ 'required' => true,  'type' => 'integer', 'sanitize_callback' => 'absint' ],
+                'token' => [ 'required' => true,  'type' => 'string',  'sanitize_callback' => 'sanitize_text_field' ],
+                'url'   => [ 'required' => true,  'type' => 'string',  'sanitize_callback' => 'esc_url_raw' ],
+            ],
+        ] );
     }
 
     public static function authenticate( \WP_REST_Request $request ): bool|\WP_Error {
@@ -115,6 +138,67 @@ class EventReceiver {
             'success'            => true,
             'automations_queued' => $total,
         ], 200 );
+    }
+
+    // -------------------------------------------------------------------------
+    // Campaign tracking handlers
+    // -------------------------------------------------------------------------
+
+    public static function handle_track_open( \WP_REST_Request $request ): void {
+        global $wpdb;
+        $send_id = $request->get_param( 'sid' );
+        $token   = $request->get_param( 'token' );
+
+        $send = $wpdb->get_row(
+            $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}wea_campaign_sends WHERE id = %d", $send_id ),
+            ARRAY_A
+        );
+
+        if ( $send ) {
+            $expected = CampaignManager::generate_token( (int) $send['campaign_id'], (int) $send['contact_id'] );
+            if ( hash_equals( $expected, $token ) ) {
+                CampaignManager::record_open( $send_id );
+            }
+        }
+
+        // Return 1x1 transparent GIF
+        header( 'Content-Type: image/gif' );
+        header( 'Cache-Control: no-cache, no-store, must-revalidate' );
+        header( 'Pragma: no-cache' );
+        header( 'Expires: 0' );
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+        echo base64_decode( 'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7' );
+        exit;
+    }
+
+    public static function handle_track_click( \WP_REST_Request $request ): void {
+        global $wpdb;
+        $send_id = $request->get_param( 'sid' );
+        $token   = $request->get_param( 'token' );
+        $url     = $request->get_param( 'url' );
+
+        // Validate URL is safe (reject javascript: etc)
+        $parsed = wp_parse_url( $url );
+        $scheme = strtolower( $parsed['scheme'] ?? '' );
+        if ( ! in_array( $scheme, [ 'http', 'https' ], true ) ) {
+            wp_redirect( home_url() );
+            exit;
+        }
+
+        $send = $wpdb->get_row(
+            $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}wea_campaign_sends WHERE id = %d", $send_id ),
+            ARRAY_A
+        );
+
+        if ( $send ) {
+            $expected = CampaignManager::generate_token( (int) $send['campaign_id'], (int) $send['contact_id'] );
+            if ( hash_equals( $expected, $token ) ) {
+                CampaignManager::record_click( $send_id, $url );
+            }
+        }
+
+        wp_redirect( $url );
+        exit;
     }
 
     /**
