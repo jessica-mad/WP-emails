@@ -29,6 +29,7 @@ class Admin {
         add_action( 'wp_ajax_wea_delete_tag',     [ __CLASS__, 'ajax_delete_tag' ] );
         add_action( 'wp_ajax_wea_sync_wp_users',  [ __CLASS__, 'ajax_sync_wp_users' ] );
         add_action( 'wp_ajax_wea_import_csv',     [ __CLASS__, 'ajax_import_csv' ] );
+        add_action( 'wp_ajax_wea_bulk_tag',       [ __CLASS__, 'ajax_bulk_tag' ] );
     }
 
     // -------------------------------------------------------------------------
@@ -318,5 +319,39 @@ class Admin {
         $content = file_get_contents($_FILES['csv']['tmp_name']);
         if ($content === false) wp_send_json_error('Cannot read file');
         wp_send_json_success(ContactManager::import_csv($content));
+    }
+
+    public static function ajax_bulk_tag(): void {
+        check_ajax_referer('wea_admin');
+        if (!current_user_can('manage_options')) wp_send_json_error('Forbidden', 403);
+
+        $tag_id = (int)($_POST['tag_id'] ?? 0);
+        $mode   = sanitize_key($_POST['mode'] ?? 'add');
+        $ids    = array_filter(array_map('intval', explode(',', $_POST['ids'] ?? '')));
+
+        if (!$tag_id || empty($ids) || !in_array($mode, ['add', 'remove'], true)) {
+            wp_send_json_error(__('Parámetros inválidos.', 'wp-email-automations'));
+        }
+
+        $updated = [];
+        foreach ($ids as $contact_id) {
+            if ($mode === 'add') {
+                ContactManager::add_tag($contact_id, $tag_id);
+            } else {
+                ContactManager::remove_tag($contact_id, $tag_id);
+            }
+            $tags = ContactManager::get_tags($contact_id);
+            $updated[] = [
+                'id'   => $contact_id,
+                'tags' => array_map(fn($t) => ['name' => $t['name'], 'color' => $t['color']], $tags),
+            ];
+        }
+
+        $count = count($ids);
+        $msg   = $mode === 'add'
+            ? sprintf(_n('Tag añadido a %d contacto.', 'Tag añadido a %d contactos.', $count, 'wp-email-automations'), $count)
+            : sprintf(_n('Tag quitado de %d contacto.', 'Tag quitado de %d contactos.', $count, 'wp-email-automations'), $count);
+
+        wp_send_json_success(['message' => $msg, 'updated' => $updated]);
     }
 }

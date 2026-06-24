@@ -126,12 +126,31 @@ if ($section === 'tags') {
             </div>
         </form>
 
+        <!-- Bulk action bar -->
+        <div id="wea-bulk-bar" style="display:none;align-items:center;gap:10px;background:#f0f6ff;border:1px solid #b3c9e8;padding:8px 14px;border-radius:4px;margin-bottom:8px">
+            <span id="wea-bulk-count" style="font-weight:600;min-width:120px"></span>
+            <?php if (!empty($all_tags)): ?>
+            <select id="wea-bulk-tag-select" style="max-width:200px">
+                <option value=""><?php esc_html_e('— Elegir tag —', 'wp-email-automations'); ?></option>
+                <?php foreach ($all_tags as $tag): ?>
+                <option value="<?php echo (int)$tag['id']; ?>"><?php echo esc_html($tag['name']); ?></option>
+                <?php endforeach; ?>
+            </select>
+            <button class="button button-primary" id="wea-bulk-add-tag"><?php esc_html_e('Añadir tag', 'wp-email-automations'); ?></button>
+            <button class="button" id="wea-bulk-remove-tag"><?php esc_html_e('Quitar tag', 'wp-email-automations'); ?></button>
+            <?php else: ?>
+            <span style="color:#888;font-size:13px"><?php echo wp_kses(sprintf(__('Primero <a href="%s">crea tags</a> para poder asignarlos.', 'wp-email-automations'), admin_url('admin.php?page=wea-contacts&section=tags')), ['a' => ['href' => []]]); ?></span>
+            <?php endif; ?>
+            <button class="button" id="wea-bulk-deselect" style="margin-left:auto"><?php esc_html_e('Deseleccionar todo', 'wp-email-automations'); ?></button>
+        </div>
+
         <!-- Contacts table -->
         <div class="wea-panel" style="padding:0;overflow:hidden">
             <table class="wp-list-table widefat fixed striped" style="border:none">
                 <thead>
                     <tr>
-                        <th style="width:180px"><?php esc_html_e('Nombre', 'wp-email-automations'); ?></th>
+                        <th style="width:32px;text-align:center"><input type="checkbox" id="wea-check-all" title="<?php esc_attr_e('Seleccionar todos', 'wp-email-automations'); ?>"></th>
+                        <th style="width:160px"><?php esc_html_e('Nombre', 'wp-email-automations'); ?></th>
                         <th><?php esc_html_e('Email', 'wp-email-automations'); ?></th>
                         <th style="width:160px"><?php esc_html_e('Tags', 'wp-email-automations'); ?></th>
                         <th style="width:110px"><?php esc_html_e('Estado', 'wp-email-automations'); ?></th>
@@ -142,16 +161,17 @@ if ($section === 'tags') {
                 </thead>
                 <tbody>
                 <?php if (empty($contacts)): ?>
-                    <tr><td colspan="7" style="text-align:center;padding:24px"><?php esc_html_e('No se encontraron contactos.', 'wp-email-automations'); ?></td></tr>
+                    <tr><td colspan="8" style="text-align:center;padding:24px"><?php esc_html_e('No se encontraron contactos.', 'wp-email-automations'); ?></td></tr>
                 <?php else: ?>
                     <?php foreach ($contacts as $contact):
                         $ctags = ContactManager::get_tags((int)$contact['id']);
                         $name  = trim($contact['first_name'] . ' ' . $contact['last_name']) ?: '—';
                     ?>
                     <tr id="contact-row-<?php echo (int)$contact['id']; ?>">
+                        <td style="text-align:center"><input type="checkbox" class="wea-contact-cb" value="<?php echo (int)$contact['id']; ?>"></td>
                         <td><?php echo esc_html($name); ?></td>
                         <td><?php echo esc_html($contact['email']); ?></td>
-                        <td>
+                        <td id="contact-tags-<?php echo (int)$contact['id']; ?>">
                             <?php foreach ($ctags as $ct): ?>
                             <span class="wea-tag-chip" style="background:<?php echo esc_attr($ct['color']); ?>"><?php echo esc_html($ct['name']); ?></span>
                             <?php endforeach; ?>
@@ -271,6 +291,72 @@ if ($section === 'tags') {
                 .then(res => res.success ? onSuccess(res.data) : (onError ? onError(res.data) : notice(res.data || '<?php echo esc_js(__('Error', 'wp-email-automations')); ?>', 'error')))
                 .catch(() => notice('<?php echo esc_js(__('Error de red', 'wp-email-automations')); ?>', 'error'));
         }
+
+        // ── Bulk selection ─────────────────────────────────────
+        const bulkBar     = document.getElementById('wea-bulk-bar');
+        const bulkCount   = document.getElementById('wea-bulk-count');
+        const checkAll    = document.getElementById('wea-check-all');
+
+        function getChecked() {
+            return [...document.querySelectorAll('.wea-contact-cb:checked')].map(cb => cb.value);
+        }
+
+        function updateBulkBar() {
+            const ids = getChecked();
+            if (ids.length > 0) {
+                bulkBar.style.display = 'flex';
+                bulkCount.textContent = ids.length + ' <?php echo esc_js(__('seleccionados', 'wp-email-automations')); ?>';
+            } else {
+                bulkBar.style.display = 'none';
+            }
+            checkAll.indeterminate = ids.length > 0 && ids.length < document.querySelectorAll('.wea-contact-cb').length;
+            checkAll.checked = ids.length > 0 && ids.length === document.querySelectorAll('.wea-contact-cb').length;
+        }
+
+        document.querySelectorAll('.wea-contact-cb').forEach(cb => cb.addEventListener('change', updateBulkBar));
+
+        checkAll.addEventListener('change', function() {
+            document.querySelectorAll('.wea-contact-cb').forEach(cb => { cb.checked = this.checked; });
+            updateBulkBar();
+        });
+
+        document.getElementById('wea-bulk-deselect').addEventListener('click', function() {
+            document.querySelectorAll('.wea-contact-cb').forEach(cb => { cb.checked = false; });
+            checkAll.checked = false;
+            updateBulkBar();
+        });
+
+        <?php if (!empty($all_tags)): ?>
+        const tagData = <?php echo json_encode(array_column($all_tags, null, 'id')); ?>;
+
+        function bulkTagAction(mode) {
+            const ids   = getChecked();
+            const tagId = document.getElementById('wea-bulk-tag-select').value;
+            if (!ids.length) { notice('<?php echo esc_js(__('Selecciona al menos un contacto.', 'wp-email-automations')); ?>', 'warning'); return; }
+            if (!tagId)      { notice('<?php echo esc_js(__('Elige un tag primero.', 'wp-email-automations')); ?>', 'warning'); return; }
+
+            const btn = document.getElementById(mode === 'add' ? 'wea-bulk-add-tag' : 'wea-bulk-remove-tag');
+            btn.disabled = true;
+            post('wea_bulk_tag', { ids: ids.join(','), tag_id: tagId, mode }, function(data) {
+                btn.disabled = false;
+                notice(data.message, 'success');
+                // Refresh tag chips for each updated contact
+                (data.updated || []).forEach(function(row) {
+                    const cell = document.getElementById('contact-tags-' + row.id);
+                    if (!cell) return;
+                    cell.innerHTML = (row.tags || []).map(t =>
+                        '<span class="wea-tag-chip" style="background:' + t.color + '">' + t.name.replace(/</g,'&lt;') + '</span>'
+                    ).join('');
+                });
+            }, function(err) {
+                btn.disabled = false;
+                notice(err || '<?php echo esc_js(__('Error', 'wp-email-automations')); ?>', 'error');
+            });
+        }
+
+        document.getElementById('wea-bulk-add-tag').addEventListener('click', () => bulkTagAction('add'));
+        document.getElementById('wea-bulk-remove-tag').addEventListener('click', () => bulkTagAction('remove'));
+        <?php endif; ?>
 
         // ── Sync WP Users ───────────────────────────────────────
         document.getElementById('wea-sync-btn').addEventListener('click', function() {
