@@ -244,8 +244,8 @@ if ($section === 'tags') {
 
     <script>
     (function() {
-        const ajax = weaAdmin.ajaxUrl;
-        const nonce = weaAdmin.nonce;
+        const ajax = <?php echo json_encode( admin_url( 'admin-ajax.php' ) ); ?>;
+        const nonce = <?php echo json_encode( wp_create_nonce( 'wea_admin' ) ); ?>;
 
         function notice(msg, type) {
             const el = document.getElementById('wea-notice');
@@ -391,8 +391,8 @@ if ($section === 'tags'):
 ?>
 <script>
 (function() {
-    const ajax = weaAdmin.ajaxUrl;
-    const nonce = weaAdmin.nonce;
+    const ajax = <?php echo json_encode( admin_url( 'admin-ajax.php' ) ); ?>;
+    const nonce = <?php echo json_encode( wp_create_nonce( 'wea_admin' ) ); ?>;
 
     function post(action, data, onSuccess) {
         const fd = new FormData();
