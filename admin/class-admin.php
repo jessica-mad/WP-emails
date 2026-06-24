@@ -208,8 +208,11 @@ class Admin {
         if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
 
         $to   = sanitize_email( $_POST['to']          ?? get_option( 'admin_email' ) );
-        $html = stripslashes( $_POST['html']           ?? '' );
+        $mjml = stripslashes( $_POST['html']           ?? '' );
         $subj = sanitize_text_field( $_POST['subject'] ?? __( 'Test Email', 'wp-email-automations' ) );
+
+        // Compile MJML → HTML server-side
+        $html = EmailSender::compile_mjml( $mjml ) ?: $mjml;
 
         $sent = EmailSender::send( $to, $subj, $html );
         $sent ? wp_send_json_success( [ 'to' => $to ] ) : wp_send_json_error( 'wp_mail failed' );

@@ -122,25 +122,8 @@
 
         // getHtml() en modo grapesjs-mjml devuelve el MJML como string
         var mjmlContent = editor.getHtml() || '';
-
-        // Extraer HTML compilado del iframe, eliminando los elementos que
-        // inyecta GrapesJS para su propio editor (estilos y scripts gjs-*).
-        var html = mjmlContent; // fallback
-        try {
-            var frameDoc = editor.Canvas.getFrameEl().contentDocument;
-            // Clonar para no mutar el iframe en vivo
-            var docClone = frameDoc.documentElement.cloneNode(true);
-            // Eliminar <style> con clases gjs- (inyectados por GrapesJS)
-            docClone.querySelectorAll('style').forEach(function(s) {
-                if ( s.textContent.indexOf('gjs-') !== -1 || s.id.indexOf('gjs') !== -1 ) {
-                    s.parentNode.removeChild(s);
-                }
-            });
-            // Eliminar <script> del editor
-            docClone.querySelectorAll('script').forEach(function(s) { s.parentNode.removeChild(s); });
-            var compiled = '<!DOCTYPE html>\n' + docClone.outerHTML;
-            if ( compiled.length > 100 ) { html = compiled; }
-        } catch(_) {}
+        // El HTML se compilará server-side al enviar; aquí solo guardamos el MJML
+        var html = '';
 
         var fd = new FormData();
         fd.append('action',       'wea_save_template');
@@ -180,18 +163,6 @@
 
         var subject = document.getElementById('wea-tmpl-subject').value.trim() || 'Email de prueba';
         var html    = editor.getHtml() || '';
-        try {
-            var frameDoc = editor.Canvas.getFrameEl().contentDocument;
-            var docClone = frameDoc.documentElement.cloneNode(true);
-            docClone.querySelectorAll('style').forEach(function(s) {
-                if ( s.textContent.indexOf('gjs-') !== -1 || s.id.indexOf('gjs') !== -1 ) {
-                    s.parentNode.removeChild(s);
-                }
-            });
-            docClone.querySelectorAll('script').forEach(function(s) { s.parentNode.removeChild(s); });
-            var compiled = '<!DOCTYPE html>\n' + docClone.outerHTML;
-            if ( compiled.length > 100 ) { html = compiled; }
-        } catch(_) {}
 
         var fd = new FormData();
         fd.append('action',      'wea_test_email');

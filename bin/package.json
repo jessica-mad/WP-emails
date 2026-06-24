@@ -1,0 +1,8 @@
+{
+  "name": "wea-mjml-compiler",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "mjml": "^4.15.3"
+  }
+}
