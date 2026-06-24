@@ -303,10 +303,13 @@ class CampaignManager {
 
         $from_name  = $campaign['from_name']  ?: get_option( 'blogname' );
         $from_email = $campaign['from_email'] ?: get_option( 'admin_email' );
-        $headers    = [
-            'Content-Type: text/html; charset=UTF-8',
-            "From: {$from_name} <{$from_email}>",
-        ];
+        $headers    = [ 'Content-Type: text/html; charset=UTF-8' ];
+
+        // Use filters so SMTP plugins (WP Mail SMTP, etc.) respect our From
+        $set_from_email = fn() => $from_email;
+        $set_from_name  = fn() => $from_name;
+        add_filter( 'wp_mail_from',      $set_from_email );
+        add_filter( 'wp_mail_from_name', $set_from_name );
 
         $total_sent = 0;
 
@@ -349,6 +352,9 @@ class CampaignManager {
                 'message'       => "Campaign ID {$campaign_id}",
             ] );
         }
+
+        remove_filter( 'wp_mail_from',      $set_from_email );
+        remove_filter( 'wp_mail_from_name', $set_from_name );
 
         $wpdb->update(
             $wpdb->prefix . 'wea_campaigns',
