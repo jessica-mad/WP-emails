@@ -19,7 +19,7 @@ class EmailSender {
 
     /**
      * Send using a saved template, replacing placeholders from $context.
-     * If the stored html looks like MJML (starts with <mjml>), compiles it first.
+     * Supports block JSON (version:1), MJML, and pre-compiled HTML.
      */
     public static function send_template( int $template_id, string $to, string $subject_override = '', array $context = [] ): bool {
         $template = TemplateManager::get( $template_id );
@@ -27,17 +27,32 @@ class EmailSender {
             return false;
         }
 
-        $subject = $subject_override ?: TemplateManager::render( $template['subject'], $context );
+        $subject       = $subject_override ?: TemplateManager::render( $template['subject'], $context );
+        $mjml_content  = $template['mjml_content'] ?? '';
+        $stored_html   = $template['html'] ?? '';
 
-        // Use compiled HTML if available; fall back to compiling from mjml_content
-        $raw_html = $template['html'] ?? '';
-        if ( self::is_mjml( $raw_html ) || empty( trim( $raw_html ) ) ) {
-            $raw_html = self::compile_mjml( $template['mjml_content'] ?? '' ) ?: $raw_html;
+        // 1. Pre-compiled HTML (not MJML and not JSON) — use directly
+        if ( ! empty( trim( $stored_html ) ) && ! self::is_mjml( $stored_html ) && ! self::is_block_json( $stored_html ) ) {
+            $html = TemplateManager::render( $stored_html, $context );
+            return self::send( $to, $subject, $html );
         }
 
-        $html = TemplateManager::render( $raw_html, $context );
+        // 2. Block JSON (version:1) — render with BlockRenderer
+        if ( self::is_block_json( $mjml_content ) ) {
+            $raw_html = BlockRenderer::to_html( $mjml_content, $context );
+            $html     = TemplateManager::render( $raw_html, $context );
+            return self::send( $to, $subject, $html );
+        }
 
-        return self::send( $to, $subject, $html );
+        // 3. MJML fallback — compile via Node.js
+        if ( ! empty( trim( $mjml_content ) ) ) {
+            $raw_html = self::compile_mjml( $mjml_content ) ?: $stored_html;
+            $html     = TemplateManager::render( $raw_html, $context );
+            return self::send( $to, $subject, $html );
+        }
+
+        // 4. Nothing usable
+        return false;
     }
 
     /**
@@ -92,6 +107,22 @@ class EmailSender {
     private static function is_mjml( string $s ): bool {
         $trimmed = ltrim( $s );
         return str_starts_with( $trimmed, '<mjml' ) || str_starts_with( $trimmed, '<mj-' );
+    }
+
+    /**
+     * Detect if a string is our block JSON format (version:1).
+     */
+    private static function is_block_json( string $s ): bool {
+        $trimmed = ltrim( $s );
+        if ( ! str_starts_with( $trimmed, '{' ) ) {
+            return false;
+        }
+        try {
+            $decoded = json_decode( $trimmed, true, 512, JSON_THROW_ON_ERROR );
+            return is_array( $decoded ) && isset( $decoded['version'] ) && $decoded['version'] === 1;
+        } catch ( \JsonException $e ) {
+            return false;
+        }
     }
 
     /**

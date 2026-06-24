@@ -42,6 +42,7 @@ function wea_init(): void {
     require_once WEA_PLUGIN_DIR . 'includes/class-template-manager.php';
     require_once WEA_PLUGIN_DIR . 'includes/class-automation.php';
     require_once WEA_PLUGIN_DIR . 'includes/class-condition-evaluator.php';
+    require_once WEA_PLUGIN_DIR . 'includes/class-block-renderer.php';
     require_once WEA_PLUGIN_DIR . 'includes/class-email-sender.php';
     require_once WEA_PLUGIN_DIR . 'includes/class-event-receiver.php';
     require_once WEA_PLUGIN_DIR . 'admin/class-admin.php';

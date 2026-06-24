@@ -61,22 +61,48 @@ if ( $action === 'list' ) :
 
 <?php else : // builder ?>
 <div class="wea-builder-page">
-
-    <!-- Barra superior propia (nombre, asunto, guardar, test) -->
     <div class="wea-builder-topbar">
         <a href="<?php echo esc_url( admin_url( 'admin.php?page=wea-templates' ) ); ?>" class="wea-back-btn">← <?php esc_html_e( 'Plantillas', 'wp-email-automations' ); ?></a>
-        <input type="text" id="wea-tmpl-name"    placeholder="<?php esc_attr_e( 'Nombre de la plantilla', 'wp-email-automations' ); ?>"   value="<?php echo esc_attr( $template['name']    ?? '' ); ?>" class="wea-topbar-input">
-        <input type="text" id="wea-tmpl-subject" placeholder="<?php esc_attr_e( 'Asunto del email — admite {{variables}}', 'wp-email-automations' ); ?>" value="<?php echo esc_attr( $template['subject'] ?? '' ); ?>" class="wea-topbar-input wea-topbar-input--wide">
+        <input type="text" id="wea-tmpl-name" placeholder="<?php esc_attr_e( 'Nombre de la plantilla', 'wp-email-automations' ); ?>" value="<?php echo esc_attr( $template['name'] ?? '' ); ?>" class="wea-topbar-input">
+        <input type="text" id="wea-tmpl-subject" placeholder="<?php esc_attr_e( 'Asunto — admite {{variables}}', 'wp-email-automations' ); ?>" value="<?php echo esc_attr( $template['subject'] ?? '' ); ?>" class="wea-topbar-input wea-topbar-input--wide">
         <div style="flex:1"></div>
+        <button class="wea-btn wea-btn--secondary" id="wea-global-settings-btn">⚙ <?php esc_html_e( 'Estilos', 'wp-email-automations' ); ?></button>
         <span id="wea-builder-status" class="wea-builder-status"></span>
         <button class="wea-btn wea-btn--secondary" id="wea-test-btn">📧 <?php esc_html_e( 'Prueba', 'wp-email-automations' ); ?></button>
-        <button class="wea-btn wea-btn--primary"   id="wea-save-btn">💾 <?php esc_html_e( 'Guardar', 'wp-email-automations' ); ?></button>
+        <button class="wea-btn wea-btn--primary" id="wea-save-btn">💾 <?php esc_html_e( 'Guardar', 'wp-email-automations' ); ?></button>
         <input type="hidden" id="wea-tmpl-id" value="<?php echo esc_attr( $template['id'] ?? 0 ); ?>">
     </div>
 
-    <!-- GrapesJS monta aquí su UI completa (bloques, canvas, estilos) -->
-    <div id="gjs"></div>
+    <div class="wea-editor">
+        <!-- Block library -->
+        <div class="wea-editor__library">
+            <div class="wea-library__title">Bloques</div>
+            <div class="wea-library__item" draggable="true" data-type="heading"><span class="wea-library__item__icon">H</span> Título</div>
+            <div class="wea-library__item" draggable="true" data-type="text"><span class="wea-library__item__icon">T</span> Texto</div>
+            <div class="wea-library__item" draggable="true" data-type="image"><span class="wea-library__item__icon">🖼</span> Imagen</div>
+            <div class="wea-library__item" draggable="true" data-type="button"><span class="wea-library__item__icon">▶</span> Botón</div>
+            <div class="wea-library__sep"></div>
+            <div class="wea-library__item" draggable="true" data-type="divider"><span class="wea-library__item__icon">─</span> Separador</div>
+            <div class="wea-library__item" draggable="true" data-type="spacer"><span class="wea-library__item__icon">↕</span> Espacio</div>
+        </div>
 
+        <!-- Canvas -->
+        <div class="wea-editor__canvas">
+            <div class="wea-canvas__email">
+                <div class="wea-canvas__inner" id="wea-canvas-inner"></div>
+            </div>
+        </div>
+
+        <!-- Props panel -->
+        <div class="wea-editor__props">
+            <div class="wea-props__header">
+                <span id="wea-props-header-title">Propiedades</span>
+            </div>
+            <div class="wea-props__body" id="wea-props-body">
+                <div class="wea-props__empty">Haz click en un bloque para editar sus propiedades</div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -84,17 +110,4 @@ var weaTemplateData = <?php echo wp_json_encode( [
     'mjml_content' => $template['mjml_content'] ?? null,
 ] ); ?>;
 </script>
-<style>
-/* Forzar overflow visible en toda la cadena de ancestros para que
-   el drag & drop del canvas de GrapesJS no quede bloqueado */
-html, body,
-#wpwrap, #wpcontent, #wpbody, #wpbody-content,
-.wrap, .wea-builder-page {
-    overflow: visible !important;
-}
-/* El editor de GrapesJS necesita que su contenedor sea position:relative */
-#gjs { position: relative; }
-/* Evitar que el admin bar de WP capture eventos sobre el canvas */
-#wpadminbar { z-index: 9999 !important; }
-</style>
 <?php endif; ?>

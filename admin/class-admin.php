@@ -81,21 +81,11 @@ class Admin {
             ],
         ] );
 
-        // GrapesJS + MJML builder — only on template editor page
+        // Block editor — only on template editor page
         if ( isset( $_GET['page'] ) && $_GET['page'] === 'wea-templates' && isset( $_GET['action'] ) && in_array( $_GET['action'], [ 'edit', 'new' ], true ) ) {
-            // Archivos locales — sin depender de CDN externos
-            wp_enqueue_style(  'grapesjs',      WEA_PLUGIN_URL . 'assets/vendor/grapes.min.css',      [], WEA_VERSION );
-            wp_enqueue_script( 'grapesjs',      WEA_PLUGIN_URL . 'assets/vendor/grapes.min.js',       [], WEA_VERSION, false );
-            wp_enqueue_script( 'grapesjs-mjml', WEA_PLUGIN_URL . 'assets/vendor/grapesjs-mjml.min.js',[], WEA_VERSION, false );
-            // Biblioteca de medios de WP (para el selector de imágenes)
             wp_enqueue_media();
-            wp_enqueue_script(
-                'wea-builder',
-                WEA_PLUGIN_URL . 'admin/assets/js/builder.js',
-                [ 'grapesjs', 'grapesjs-mjml' ],
-                WEA_VERSION,
-                true
-            );
+            wp_enqueue_style(  'wea-builder', WEA_PLUGIN_URL . 'admin/assets/css/builder.css', [], WEA_VERSION );
+            wp_enqueue_script( 'wea-builder', WEA_PLUGIN_URL . 'admin/assets/js/builder.js',  [], WEA_VERSION, true );
         }
     }
 
@@ -209,12 +199,12 @@ class Admin {
         check_ajax_referer( 'wea_admin' );
         if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
 
-        $to   = sanitize_email( $_POST['to']          ?? get_option( 'admin_email' ) );
-        $mjml = stripslashes( $_POST['html']           ?? '' );
-        $subj = sanitize_text_field( $_POST['subject'] ?? __( 'Test Email', 'wp-email-automations' ) );
+        $to      = sanitize_email( $_POST['to']          ?? get_option( 'admin_email' ) );
+        $content = stripslashes( $_POST['html']           ?? '' );
+        $subj    = sanitize_text_field( $_POST['subject'] ?? __( 'Test Email', 'wp-email-automations' ) );
 
-        // Compile MJML → HTML server-side
-        $html = EmailSender::compile_mjml( $mjml ) ?: $mjml;
+        // Compile block JSON or MJML → HTML server-side
+        $html = BlockRenderer::to_html( $content ) ?: $content;
 
         $sent = EmailSender::send( $to, $subj, $html );
         $sent ? wp_send_json_success( [ 'to' => $to ] ) : wp_send_json_error( 'wp_mail failed' );
