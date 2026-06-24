@@ -30,6 +30,18 @@ class Admin {
         add_action( 'wp_ajax_wea_sync_wp_users',  [ __CLASS__, 'ajax_sync_wp_users' ] );
         add_action( 'wp_ajax_wea_import_csv',     [ __CLASS__, 'ajax_import_csv' ] );
         add_action( 'wp_ajax_wea_bulk_tag',       [ __CLASS__, 'ajax_bulk_tag' ] );
+
+        // Campaigns AJAX
+        add_action( 'wp_ajax_wea_save_campaign',       [ __CLASS__, 'ajax_save_campaign' ] );
+        add_action( 'wp_ajax_wea_delete_campaign',     [ __CLASS__, 'ajax_delete_campaign' ] );
+        add_action( 'wp_ajax_wea_send_campaign',       [ __CLASS__, 'ajax_send_campaign' ] );
+        add_action( 'wp_ajax_wea_schedule_campaign',   [ __CLASS__, 'ajax_schedule_campaign' ] );
+        add_action( 'wp_ajax_wea_cancel_campaign',     [ __CLASS__, 'ajax_cancel_campaign' ] );
+        add_action( 'wp_ajax_wea_campaign_stats',      [ __CLASS__, 'ajax_campaign_stats' ] );
+        add_action( 'wp_ajax_wea_preview_recipients',  [ __CLASS__, 'ajax_preview_recipients' ] );
+
+        // Cron hook for processing campaigns
+        add_action( 'wea_process_campaign', [ 'WEA\\CampaignManager', 'process' ] );
     }
 
     // -------------------------------------------------------------------------
@@ -50,6 +62,7 @@ class Admin {
         add_submenu_page( 'wea-dashboard', __( 'Dashboard',    'wp-email-automations' ), __( 'Dashboard',    'wp-email-automations' ), 'manage_options', 'wea-dashboard',   [ __CLASS__, 'page_dashboard' ] );
         add_submenu_page( 'wea-dashboard', __( 'Automations',  'wp-email-automations' ), __( 'Automations',  'wp-email-automations' ), 'manage_options', 'wea-automations', [ __CLASS__, 'page_automations' ] );
         add_submenu_page( 'wea-dashboard', __( 'Templates',    'wp-email-automations' ), __( 'Templates',    'wp-email-automations' ), 'manage_options', 'wea-templates',   [ __CLASS__, 'page_templates' ] );
+        add_submenu_page( 'wea-dashboard', __( 'Campaigns',    'wp-email-automations' ), __( 'Campaigns',    'wp-email-automations' ), 'manage_options', 'wea-campaigns',   [ __CLASS__, 'page_campaigns' ] );
         add_submenu_page( 'wea-dashboard', __( 'Contacts',     'wp-email-automations' ), __( 'Contacts',     'wp-email-automations' ), 'manage_options', 'wea-contacts',    [ __CLASS__, 'page_contacts' ] );
         add_submenu_page( 'wea-dashboard', __( 'Logs',         'wp-email-automations' ), __( 'Logs',         'wp-email-automations' ), 'manage_options', 'wea-logs',        [ __CLASS__, 'page_logs' ] );
         add_submenu_page( 'wea-dashboard', __( 'Settings',     'wp-email-automations' ), __( 'Settings',     'wp-email-automations' ), 'manage_options', 'wea-settings',    [ __CLASS__, 'page_settings' ] );
@@ -104,6 +117,7 @@ class Admin {
     // Pages
     // -------------------------------------------------------------------------
 
+    public static function page_campaigns(): void  { require WEA_PLUGIN_DIR . 'admin/views/campaigns.php'; }
     public static function page_contacts(): void   { require WEA_PLUGIN_DIR . 'admin/views/contacts.php'; }
     public static function page_dashboard(): void  { require WEA_PLUGIN_DIR . 'admin/views/dashboard.php'; }
     public static function page_automations(): void { require WEA_PLUGIN_DIR . 'admin/views/automations.php'; }

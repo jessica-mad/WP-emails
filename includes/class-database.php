@@ -109,6 +109,62 @@ class Database {
             KEY tag_id (tag_id)
         ) $charset;" );
 
+        // Campaigns
+        dbDelta( "CREATE TABLE {$wpdb->prefix}wea_campaigns (
+            id                BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            name              VARCHAR(191)    NOT NULL,
+            subject           VARCHAR(500)    NOT NULL DEFAULT '',
+            from_name         VARCHAR(191)    NOT NULL DEFAULT '',
+            from_email        VARCHAR(191)    NOT NULL DEFAULT '',
+            template_id       BIGINT UNSIGNED DEFAULT NULL,
+            body_html         LONGTEXT        NOT NULL DEFAULT '',
+            filter_tags       VARCHAR(500)    NOT NULL DEFAULT '',
+            filter_status     VARCHAR(50)     NOT NULL DEFAULT 'subscribed',
+            status            ENUM('draft','scheduled','sending','sent','cancelled') NOT NULL DEFAULT 'draft',
+            scheduled_at      DATETIME        DEFAULT NULL,
+            sent_at           DATETIME        DEFAULT NULL,
+            total_recipients  INT UNSIGNED    NOT NULL DEFAULT 0,
+            total_sent        INT UNSIGNED    NOT NULL DEFAULT 0,
+            total_opens       INT UNSIGNED    NOT NULL DEFAULT 0,
+            total_clicks      INT UNSIGNED    NOT NULL DEFAULT 0,
+            created_at        DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at        DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY status (status)
+        ) $charset;" );
+
+        // Campaign sends (per-contact tracking)
+        dbDelta( "CREATE TABLE {$wpdb->prefix}wea_campaign_sends (
+            id               BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            campaign_id      BIGINT UNSIGNED NOT NULL,
+            contact_id       BIGINT UNSIGNED NOT NULL,
+            email            VARCHAR(191)    NOT NULL,
+            token            VARCHAR(64)     NOT NULL,
+            sent_at          DATETIME        DEFAULT NULL,
+            open_count       INT UNSIGNED    NOT NULL DEFAULT 0,
+            first_opened_at  DATETIME        DEFAULT NULL,
+            click_count      INT UNSIGNED    NOT NULL DEFAULT 0,
+            first_clicked_at DATETIME        DEFAULT NULL,
+            status           ENUM('pending','sent','failed') NOT NULL DEFAULT 'pending',
+            PRIMARY KEY (id),
+            UNIQUE KEY campaign_contact (campaign_id, contact_id),
+            KEY token (token),
+            KEY campaign_id (campaign_id)
+        ) $charset;" );
+
+        // Campaign click events
+        dbDelta( "CREATE TABLE {$wpdb->prefix}wea_campaign_clicks (
+            id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            send_id     BIGINT UNSIGNED NOT NULL,
+            campaign_id BIGINT UNSIGNED NOT NULL,
+            contact_id  BIGINT UNSIGNED NOT NULL,
+            url         TEXT            NOT NULL,
+            clicked_at  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY send_id (send_id),
+            KEY campaign_id (campaign_id)
+        ) $charset;" );
+
         update_option( 'wea_db_version', WEA_DB_VERSION );
     }
 

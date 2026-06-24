@@ -17,7 +17,7 @@ define( 'WEA_VERSION',     '1.0.0' );
 define( 'WEA_PLUGIN_FILE', __FILE__ );
 define( 'WEA_PLUGIN_DIR',  plugin_dir_path( __FILE__ ) );
 define( 'WEA_PLUGIN_URL',  plugin_dir_url( __FILE__ ) );
-define( 'WEA_DB_VERSION',  '1.1' );
+define( 'WEA_DB_VERSION',  '1.2' );
 
 // Autoload classes
 spl_autoload_register( function ( $class ) {
@@ -47,6 +47,7 @@ function wea_init(): void {
     require_once WEA_PLUGIN_DIR . 'includes/class-tag-manager.php';
     require_once WEA_PLUGIN_DIR . 'includes/class-email-sender.php';
     require_once WEA_PLUGIN_DIR . 'includes/class-event-receiver.php';
+    require_once WEA_PLUGIN_DIR . 'includes/class-campaign-manager.php';
     require_once WEA_PLUGIN_DIR . 'admin/class-admin.php';
 
     // Auto-crear contacto cuando se registra un usuario WP
