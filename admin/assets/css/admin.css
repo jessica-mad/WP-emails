@@ -306,3 +306,55 @@ body.wp-admin:has(.wea-builder-page) #wpbody-content {
 /* ── Misc ───────────────────────────────────────────────────── */
 .wea-success { color: #065f46; }
 .wea-error   { color: #991b1b; }
+
+/* ── Contacts page ───────────────────────────────────────── */
+.wea-contacts-filters { display:flex; gap:8px; align-items:center; margin-bottom:16px; flex-wrap:wrap; }
+.wea-contacts-filters input, .wea-contacts-filters select { padding:5px 10px; border:1px solid #ddd; border-radius:4px; }
+
+.wea-badge--subscribed   { background:#d1fae5; color:#065f46; }
+.wea-badge--unsubscribed { background:#f3f4f6; color:#6b7280; }
+.wea-badge--bounced      { background:#fee2e2; color:#991b1b; }
+.wea-badge--complained   { background:#fce7f3; color:#9d174d; }
+.wea-badge--pending      { background:#fef3c7; color:#92400e; }
+
+.wea-tag-chip {
+    display:inline-flex; align-items:center; gap:4px;
+    padding:2px 8px; border-radius:20px; font-size:.72rem; font-weight:600;
+    color:#fff; margin:1px;
+}
+
+/* Modal */
+.wea-modal {
+    position:fixed; inset:0; background:rgba(0,0,0,.5);
+    z-index:100000; display:flex; align-items:center; justify-content:center;
+}
+.wea-modal__box {
+    background:#fff; border-radius:8px; padding:24px; width:480px;
+    max-width:calc(100vw - 40px); max-height:calc(100vh - 80px);
+    overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,.3);
+}
+.wea-modal__box h3 { margin:0 0 16px; }
+.wea-modal__box label { display:block; font-size:.82rem; font-weight:600; margin:10px 0 3px; color:#374151; }
+.wea-modal__box input[type="email"],
+.wea-modal__box input[type="text"],
+.wea-modal__box select {
+    width:100%; padding:7px 10px; border:1px solid #d1d5db;
+    border-radius:4px; font-size:.9rem; box-sizing:border-box;
+}
+.wea-modal__actions { display:flex; gap:8px; justify-content:flex-end; margin-top:20px; }
+
+.wea-tags-grid { display:flex; flex-wrap:wrap; gap:6px; margin-top:4px; }
+.wea-tag-checkbox { display:none; }
+.wea-tag-label {
+    padding:3px 10px; border-radius:20px; font-size:.78rem; cursor:pointer;
+    border:2px solid transparent; opacity:.7; transition:opacity .15s;
+}
+.wea-tag-checkbox:checked + .wea-tag-label { opacity:1; border-color:#000; }
+
+.wea-pagination { display:flex; gap:4px; align-items:center; margin-top:12px; }
+.wea-page-btn {
+    padding:4px 10px; border:1px solid #ddd; border-radius:4px;
+    background:#fff; cursor:pointer; font-size:.82rem;
+}
+.wea-page-btn.active { background:#6366f1; color:#fff; border-color:#6366f1; }
+.wea-page-btn:disabled { opacity:.4; cursor:default; }

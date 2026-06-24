@@ -20,6 +20,15 @@ class Admin {
         add_action( 'wp_ajax_wea_test_email',        [ __CLASS__, 'ajax_test_email' ] );
         add_action( 'wp_ajax_wea_save_automation',   [ __CLASS__, 'ajax_save_automation' ] );
         add_action( 'wp_ajax_wea_load_automation',   [ __CLASS__, 'ajax_load_automation' ] );
+
+        // Contacts AJAX
+        add_action( 'wp_ajax_wea_save_contact',   [ __CLASS__, 'ajax_save_contact' ] );
+        add_action( 'wp_ajax_wea_delete_contact', [ __CLASS__, 'ajax_delete_contact' ] );
+        add_action( 'wp_ajax_wea_contact_tag',    [ __CLASS__, 'ajax_contact_tag' ] );
+        add_action( 'wp_ajax_wea_save_tag',       [ __CLASS__, 'ajax_save_tag' ] );
+        add_action( 'wp_ajax_wea_delete_tag',     [ __CLASS__, 'ajax_delete_tag' ] );
+        add_action( 'wp_ajax_wea_sync_wp_users',  [ __CLASS__, 'ajax_sync_wp_users' ] );
+        add_action( 'wp_ajax_wea_import_csv',     [ __CLASS__, 'ajax_import_csv' ] );
     }
 
     // -------------------------------------------------------------------------
@@ -40,6 +49,7 @@ class Admin {
         add_submenu_page( 'wea-dashboard', __( 'Dashboard',    'wp-email-automations' ), __( 'Dashboard',    'wp-email-automations' ), 'manage_options', 'wea-dashboard',   [ __CLASS__, 'page_dashboard' ] );
         add_submenu_page( 'wea-dashboard', __( 'Automations',  'wp-email-automations' ), __( 'Automations',  'wp-email-automations' ), 'manage_options', 'wea-automations', [ __CLASS__, 'page_automations' ] );
         add_submenu_page( 'wea-dashboard', __( 'Templates',    'wp-email-automations' ), __( 'Templates',    'wp-email-automations' ), 'manage_options', 'wea-templates',   [ __CLASS__, 'page_templates' ] );
+        add_submenu_page( 'wea-dashboard', __( 'Contacts',     'wp-email-automations' ), __( 'Contacts',     'wp-email-automations' ), 'manage_options', 'wea-contacts',    [ __CLASS__, 'page_contacts' ] );
         add_submenu_page( 'wea-dashboard', __( 'Logs',         'wp-email-automations' ), __( 'Logs',         'wp-email-automations' ), 'manage_options', 'wea-logs',        [ __CLASS__, 'page_logs' ] );
         add_submenu_page( 'wea-dashboard', __( 'Settings',     'wp-email-automations' ), __( 'Settings',     'wp-email-automations' ), 'manage_options', 'wea-settings',    [ __CLASS__, 'page_settings' ] );
     }
@@ -93,6 +103,7 @@ class Admin {
     // Pages
     // -------------------------------------------------------------------------
 
+    public static function page_contacts(): void   { require WEA_PLUGIN_DIR . 'admin/views/contacts.php'; }
     public static function page_dashboard(): void  { require WEA_PLUGIN_DIR . 'admin/views/dashboard.php'; }
     public static function page_automations(): void { require WEA_PLUGIN_DIR . 'admin/views/automations.php'; }
     public static function page_templates(): void  { require WEA_PLUGIN_DIR . 'admin/views/templates.php'; }
@@ -240,5 +251,72 @@ class Admin {
         $auto['conditions'] = json_decode( $auto['conditions'], true );
         $auto['actions']    = json_decode( $auto['actions'],    true );
         wp_send_json_success( $auto );
+    }
+
+    // -------------------------------------------------------------------------
+    // Contacts AJAX
+    // -------------------------------------------------------------------------
+
+    public static function ajax_save_contact(): void {
+        check_ajax_referer('wea_admin');
+        if (!current_user_can('manage_options')) wp_send_json_error('Forbidden', 403);
+        $id = ContactManager::upsert([
+            'email'      => sanitize_email($_POST['email'] ?? ''),
+            'first_name' => sanitize_text_field($_POST['first_name'] ?? ''),
+            'last_name'  => sanitize_text_field($_POST['last_name'] ?? ''),
+            'status'     => sanitize_key($_POST['status'] ?? 'subscribed'),
+            'source'     => 'manual',
+        ]);
+        $id ? wp_send_json_success(['id' => $id]) : wp_send_json_error('Invalid data');
+    }
+
+    public static function ajax_delete_contact(): void {
+        check_ajax_referer('wea_admin');
+        if (!current_user_can('manage_options')) wp_send_json_error('Forbidden', 403);
+        ContactManager::delete(absint($_POST['id'] ?? 0))
+            ? wp_send_json_success() : wp_send_json_error('Not found');
+    }
+
+    public static function ajax_contact_tag(): void {
+        check_ajax_referer('wea_admin');
+        if (!current_user_can('manage_options')) wp_send_json_error('Forbidden', 403);
+        $contact_id = absint($_POST['contact_id'] ?? 0);
+        $tag_ids    = array_map('absint', (array)($_POST['tag_ids'] ?? []));
+        ContactManager::set_tags($contact_id, $tag_ids);
+        wp_send_json_success();
+    }
+
+    public static function ajax_save_tag(): void {
+        check_ajax_referer('wea_admin');
+        if (!current_user_can('manage_options')) wp_send_json_error('Forbidden', 403);
+        $id = TagManager::save([
+            'id'    => absint($_POST['id'] ?? 0),
+            'name'  => sanitize_text_field($_POST['name'] ?? ''),
+            'color' => sanitize_hex_color($_POST['color'] ?? '#6366f1'),
+        ]);
+        $id ? wp_send_json_success(['id' => $id]) : wp_send_json_error('Invalid data');
+    }
+
+    public static function ajax_delete_tag(): void {
+        check_ajax_referer('wea_admin');
+        if (!current_user_can('manage_options')) wp_send_json_error('Forbidden', 403);
+        TagManager::delete(absint($_POST['id'] ?? 0))
+            ? wp_send_json_success() : wp_send_json_error('Not found');
+    }
+
+    public static function ajax_sync_wp_users(): void {
+        check_ajax_referer('wea_admin');
+        if (!current_user_can('manage_options')) wp_send_json_error('Forbidden', 403);
+        $count = ContactManager::sync_wp_users();
+        wp_send_json_success(['count' => $count]);
+    }
+
+    public static function ajax_import_csv(): void {
+        check_ajax_referer('wea_admin');
+        if (!current_user_can('manage_options')) wp_send_json_error('Forbidden', 403);
+        if (empty($_FILES['csv']['tmp_name'])) wp_send_json_error('No file');
+        $content = file_get_contents($_FILES['csv']['tmp_name']);
+        if ($content === false) wp_send_json_error('Cannot read file');
+        wp_send_json_success(ContactManager::import_csv($content));
     }
 }

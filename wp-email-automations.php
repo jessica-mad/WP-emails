@@ -17,7 +17,7 @@ define( 'WEA_VERSION',     '1.0.0' );
 define( 'WEA_PLUGIN_FILE', __FILE__ );
 define( 'WEA_PLUGIN_DIR',  plugin_dir_path( __FILE__ ) );
 define( 'WEA_PLUGIN_URL',  plugin_dir_url( __FILE__ ) );
-define( 'WEA_DB_VERSION',  '1.0' );
+define( 'WEA_DB_VERSION',  '1.1' );
 
 // Autoload classes
 spl_autoload_register( function ( $class ) {
@@ -43,9 +43,25 @@ function wea_init(): void {
     require_once WEA_PLUGIN_DIR . 'includes/class-automation.php';
     require_once WEA_PLUGIN_DIR . 'includes/class-condition-evaluator.php';
     require_once WEA_PLUGIN_DIR . 'includes/class-block-renderer.php';
+    require_once WEA_PLUGIN_DIR . 'includes/class-contact-manager.php';
+    require_once WEA_PLUGIN_DIR . 'includes/class-tag-manager.php';
     require_once WEA_PLUGIN_DIR . 'includes/class-email-sender.php';
     require_once WEA_PLUGIN_DIR . 'includes/class-event-receiver.php';
     require_once WEA_PLUGIN_DIR . 'admin/class-admin.php';
+
+    // Auto-crear contacto cuando se registra un usuario WP
+    add_action('user_register', function(int $user_id): void {
+        $user = get_userdata($user_id);
+        if (!$user) return;
+        $name = explode(' ', $user->display_name, 2);
+        WEA\ContactManager::upsert([
+            'email'      => $user->user_email,
+            'first_name' => $name[0] ?? '',
+            'last_name'  => $name[1] ?? '',
+            'wp_user_id' => $user_id,
+            'source'     => 'wp_registration',
+        ]);
+    });
 
     WEA\EventReceiver::init();
     WEA\Automation::init();
