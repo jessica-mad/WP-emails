@@ -47,20 +47,71 @@
         storageManager: false,
         height:         'calc(100vh - 96px)',
         width:          'auto',
+
+        // ── Asset Manager: usar biblioteca de medios de WordPress ──────────────
+        assetManager: {
+            upload:   false,  // deshabilitar el uploader por defecto de GrapesJS
+            assets:   [],
+            // No abrimos el modal por defecto; usamos wp.media en su lugar
+            showUrls: true,
+        },
     };
 
     if ( mjmlPlugin ) {
         editorConfig.plugins     = [ mjmlPlugin ];
         editorConfig.pluginsOpts = {};
-        editorConfig.pluginsOpts[ mjmlPlugin ] = {};
+        editorConfig.pluginsOpts[ mjmlPlugin ] = {
+            // Aseguramos que traits y styles estén activos
+            columnsPadding: '0 0',
+        };
     }
 
     var editor = grapesjs.init( editorConfig );
 
-    // -------------------------------------------------------------------------
-    // CARGAR: usar setComponents() con el string MJML guardado
-    // (loadProjectData produce wrapper genérico y rompe el drag & drop MJML)
-    // -------------------------------------------------------------------------
+    // ── Interceptar apertura del Asset Manager → abrir WP Media Library ───────
+    editor.on('run:open-assets', function (e) {
+        // Cancelar el modal nativo de GrapesJS
+        try { e.halt(); } catch(_) {}
+
+        if ( typeof wp === 'undefined' || ! wp.media ) {
+            // Fallback: prompt con URL
+            var url = prompt('URL de la imagen:', 'https://');
+            if ( url && url.length > 5 ) { applyImageUrl(url); }
+            return;
+        }
+
+        var frame = wp.media({
+            title:    'Seleccionar imagen',
+            button:   { text: 'Usar esta imagen' },
+            multiple: false,
+            library:  { type: 'image' },
+        });
+
+        frame.on('select', function () {
+            var attachment = frame.state().get('selection').first().toJSON();
+            applyImageUrl( attachment.url );
+        });
+
+        frame.open();
+    });
+
+    function applyImageUrl(url) {
+        var selected = editor.getSelected();
+        if ( selected ) {
+            // mj-image usa el atributo src
+            if ( selected.get('type') === 'mj-image' || selected.attributes.tagName === 'mj-image' ) {
+                selected.addAttributes({ src: url });
+            } else {
+                // intento genérico
+                selected.addAttributes({ src: url });
+            }
+        }
+        // También actualizar en el Asset Manager por si GrapesJS lo necesita internamente
+        editor.AssetManager.add([ url ]);
+        editor.AssetManager.render();
+    }
+
+    // ── Cargar contenido ──────────────────────────────────────────────────────
     editor.on('load', function () {
         try { editor.runCommand('open-blocks'); } catch(e) {}
 
@@ -70,12 +121,9 @@
         }
         editor.setComponents( mjmlToLoad || defaultMjml );
 
-        // ── Fix cross-iframe drag & drop ─────────────────────────────────────
+        // ── Fix cross-iframe drag & drop ──────────────────────────────────────
         // El canvas de GrapesJS vive en un <iframe>. El navegador no propaga
-        // mousemove/mouseup del documento principal al iframe durante un drag,
-        // por lo que el sorter nunca detecta dónde se suelta el bloque.
-        // Solución: reenviar manualmente esos eventos al documento del iframe,
-        // traduciendo las coordenadas al sistema de referencia del iframe.
+        // mousemove/mouseup al iframe durante un drag desde el panel de bloques.
         try {
             var frameEl  = editor.Canvas.getFrameEl();
             var frameWin = frameEl.contentWindow;
@@ -104,12 +152,9 @@
                 }, { passive: true });
             });
         } catch(e) {}
-        // ────────────────────────────────────────────────────────────────────
     });
 
-    // -------------------------------------------------------------------------
-    // GUARDAR: editor.getHtml() devuelve el MJML como string de tags
-    // -------------------------------------------------------------------------
+    // ── Guardar ───────────────────────────────────────────────────────────────
     document.getElementById('wea-save-btn').addEventListener('click', function () {
         var name    = document.getElementById('wea-tmpl-name').value.trim();
         var subject = document.getElementById('wea-tmpl-subject').value.trim();
@@ -120,10 +165,7 @@
             return;
         }
 
-        // getHtml() en modo grapesjs-mjml devuelve el MJML como string
         var mjmlContent = editor.getHtml() || '';
-        // El HTML se compilará server-side al enviar; aquí solo guardamos el MJML
-        var html = '';
 
         var fd = new FormData();
         fd.append('action',       'wea_save_template');
@@ -132,7 +174,7 @@
         fd.append('name',         name);
         fd.append('subject',      subject);
         fd.append('mjml_content', mjmlContent);
-        fd.append('html',         html);
+        fd.append('html',         '');
 
         showStatus('Guardando…', 'info');
 
@@ -154,9 +196,7 @@
             .catch(function(){ showStatus('Error de red.', 'error'); });
     });
 
-    // -------------------------------------------------------------------------
-    // Enviar test
-    // -------------------------------------------------------------------------
+    // ── Enviar test ───────────────────────────────────────────────────────────
     document.getElementById('wea-test-btn').addEventListener('click', function () {
         var to = prompt('Enviar email de prueba a:', '');
         if ( ! to || ! to.includes('@') ) return;

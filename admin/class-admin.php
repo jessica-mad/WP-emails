@@ -87,6 +87,8 @@ class Admin {
             wp_enqueue_style(  'grapesjs',      WEA_PLUGIN_URL . 'assets/vendor/grapes.min.css',      [], WEA_VERSION );
             wp_enqueue_script( 'grapesjs',      WEA_PLUGIN_URL . 'assets/vendor/grapes.min.js',       [], WEA_VERSION, false );
             wp_enqueue_script( 'grapesjs-mjml', WEA_PLUGIN_URL . 'assets/vendor/grapesjs-mjml.min.js',[], WEA_VERSION, false );
+            // Biblioteca de medios de WP (para el selector de imágenes)
+            wp_enqueue_media();
             wp_enqueue_script(
                 'wea-builder',
                 WEA_PLUGIN_URL . 'admin/assets/js/builder.js',
